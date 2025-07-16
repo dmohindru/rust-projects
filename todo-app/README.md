@@ -27,12 +27,6 @@ A command-line application to manage your todos, built in Rust.
 todo get all
 ```
 
-### Add a todo
-
-```sh
-todo add --name <todo_name> --description <todo_description>
-```
-
 ### Get todo by ID
 
 ```sh
@@ -43,6 +37,12 @@ todo get id <todo_id>
 
 ```sh
 todo get name <search_string>
+```
+
+### Add a todo
+
+```sh
+todo add --name <todo_name> --description <todo_description>
 ```
 
 ### Mark todo as complete
