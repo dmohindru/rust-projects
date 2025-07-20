@@ -3,6 +3,12 @@ use clap::Parser;
 
 // use ArgGroup
 
+/*
+1. Split application core logic as a library code
+2. Write unit tests
+3. Write integration tests
+*/
+
 #[derive(Parser)]
 struct TodoCli {}
 
