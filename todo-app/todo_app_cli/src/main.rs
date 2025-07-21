@@ -1,17 +1,14 @@
+mod cli;
+
 use clap::Parser;
-// use sub commands
-
-// use ArgGroup
-
-/*
-1. Split application core logic as a library code
-2. Write unit tests
-3. Write integration tests
-*/
-
-#[derive(Parser)]
-struct TodoCli {}
+use cli::{TodoCli, Commands};
 
 fn main() {
-    let todo_cli = TodoCli::parse();
+    let cli = TodoCli::parse();
+
+    match &cli.command {
+        Commands::Get { get_command } => {
+            println!("Get command params is: {get_command:?}")
+        }
+    }
 }
