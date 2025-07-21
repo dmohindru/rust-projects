@@ -1,8 +1,6 @@
 mod cli;
-
 use clap::Parser;
-use cli::{TodoCli, Commands};
-
+use cli::{Commands, TodoCli};
 fn main() {
     let cli = TodoCli::parse();
 
