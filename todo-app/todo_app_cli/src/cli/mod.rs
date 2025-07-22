@@ -4,7 +4,7 @@ pub mod delete;
 pub mod get;
 
 pub use add::AddCommandArgs;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 pub use complete::CompleteCommandArgs;
 pub use delete::DeleteCommandArgs;
 pub use get::GetCommand;
@@ -15,6 +15,9 @@ pub use get::GetCommand;
 pub struct TodoCli {
     #[command(subcommand)]
     pub command: Commands,
+    /// Optional output <text|json> defaults to text
+    #[arg(short, long)]
+    pub output: Option<OutputFormat>,
 }
 
 #[derive(Subcommand)]
@@ -30,4 +33,10 @@ pub enum Commands {
     Complete(CompleteCommandArgs),
     /// Delete a Todo
     Delete(DeleteCommandArgs),
+}
+
+#[derive(ValueEnum, Clone, Debug)]
+pub enum OutputFormat {
+    Text,
+    Json,
 }

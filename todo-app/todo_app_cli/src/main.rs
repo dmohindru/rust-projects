@@ -18,4 +18,10 @@ fn main() {
             println!("Delete command params is: {delete_args:?}")
         }
     }
+
+    if let Some(output) = cli.output {
+        println!("Printing output in format: {:?}", output);
+    } else {
+        println!("Printing output in default format of text");
+    }
 }
