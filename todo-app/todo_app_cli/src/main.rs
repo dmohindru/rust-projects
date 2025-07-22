@@ -8,5 +8,14 @@ fn main() {
         Commands::Get { get_command } => {
             println!("Get command params is: {get_command:?}")
         }
+        Commands::Add(add_args) => {
+            println!("Add command params is: {add_args:?}")
+        }
+        Commands::Complete(complete_args) => {
+            println!("Complete command params is: {complete_args:?}")
+        }
+        Commands::Delete(delete_args) => {
+            println!("Delete command params is: {delete_args:?}")
+        }
     }
 }

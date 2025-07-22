@@ -1,6 +1,12 @@
+pub mod add;
+pub mod complete;
+pub mod delete;
 pub mod get;
 
+pub use add::AddCommandArgs;
 use clap::{Parser, Subcommand};
+pub use complete::CompleteCommandArgs;
+pub use delete::DeleteCommandArgs;
 pub use get::GetCommand;
 
 #[derive(Parser)]
@@ -18,4 +24,10 @@ pub enum Commands {
         #[command(subcommand)]
         get_command: GetCommand,
     },
+    /// Add a Todo
+    Add(AddCommandArgs),
+    /// Complete a Todo
+    Complete(CompleteCommandArgs),
+    /// Delete a Todo
+    Delete(DeleteCommandArgs),
 }
