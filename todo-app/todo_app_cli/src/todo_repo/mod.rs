@@ -48,15 +48,15 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
         todo!();
     }
 
-    fn add_todo(file_path: &str, add_command_args: &AddCommandArgs) -> Result<Todo, TodoErrors> {
+    fn add_todo(&mut self, add_command_args: &AddCommandArgs) -> Result<Todo, TodoErrors> {
         todo!();
     }
 
-    fn delete_todo(file_path: &str, todo_id: &str) -> Result<Todo, TodoErrors> {
+    fn delete_todo(&mut self, todo_id: &str) -> Result<Todo, TodoErrors> {
         todo!();
     }
 
-    fn mark_todo_complete(file_path: &str, todo_id: &str) -> Result<Todo, TodoErrors> {
+    fn mark_todo_complete(&mut self, todo_id: &str) -> Result<Todo, TodoErrors> {
         todo!();
     }
 }
