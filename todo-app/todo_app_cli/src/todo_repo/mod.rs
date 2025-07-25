@@ -1,3 +1,5 @@
+use std::io::{Read, Write};
+
 use crate::cli::AddCommandArgs;
 use serde::{Deserialize, Serialize};
 
@@ -10,24 +12,56 @@ pub struct Todo {
 }
 
 pub enum TodoErrors {
-    TodoAddError,
-    TodoGetError,
-    TodoDeleteError,
-    TodoUpdateError,
+    TodoAddError(String),
+    TodoDeleteError(String),
+    TodoGetError(String),
+    TodoUpdateError(String),
 }
 
-fn load_todo(file_path: &str) -> Result<Vec<Todo>, TodoErrors> {
-    todo!();
+pub struct TodoRepository<R: Read, W: Write> {
+    reader: R,
+    writer: W,
 }
 
-fn add_todo(file_path: &str, add_command_args: &AddCommandArgs) -> Result<Todo, TodoErrors> {
-    todo!();
+impl<R: Read, W: Write> TodoRepository<R, W> {
+    pub fn new(reader: R, writer: W) -> Self {
+        Self { reader, writer }
+    }
+
+    fn load_all(&mut self) -> Result<Vec<Todo>, TodoErrors> {
+        todo!();
+    }
+
+    fn save_all(&mut self, all_todos: Vec<Todo>) -> Result<(), TodoErrors> {
+        todo!();
+    }
+
+    fn get_all_todos(&mut self) -> Result<Vec<Todo>, TodoErrors> {
+        todo!();
+    }
+
+    fn get_todo_by_id(&mut self, todo_id: String) -> Result<Todo, TodoErrors> {
+        todo!();
+    }
+
+    fn get_todo_by_name(&mut self, todo_name: String) -> Result<Todo, TodoErrors> {
+        todo!();
+    }
+
+    fn add_todo(file_path: &str, add_command_args: &AddCommandArgs) -> Result<Todo, TodoErrors> {
+        todo!();
+    }
+
+    fn delete_todo(file_path: &str, todo_id: &str) -> Result<Todo, TodoErrors> {
+        todo!();
+    }
+
+    fn mark_todo_complete(file_path: &str, todo_id: &str) -> Result<Todo, TodoErrors> {
+        todo!();
+    }
 }
 
-fn delete_todo(file_path: &str, todo_id: &str) -> Result<Todo, TodoErrors> {
-    todo!();
-}
-
-fn mark_todo_complete(file_path: &str, todo_id: &str) -> Result<Todo, TodoErrors> {
-    todo!();
+#[cfg(test)]
+mod tests {
+    use super::*;
 }
