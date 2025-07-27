@@ -36,27 +36,27 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
         todo!();
     }
 
-    fn get_all_todos(&mut self) -> Result<Vec<Todo>, TodoErrors> {
+    pub fn get_all_todos(&mut self) -> Result<Vec<Todo>, TodoErrors> {
         todo!();
     }
 
-    fn get_todo_by_id(&mut self, todo_id: String) -> Result<Todo, TodoErrors> {
+    pub fn get_todo_by_id(&mut self, todo_id: String) -> Result<Todo, TodoErrors> {
         todo!();
     }
 
-    fn get_todo_by_name(&mut self, todo_name: String) -> Result<Todo, TodoErrors> {
+    pub fn get_todo_by_name(&mut self, todo_name: String) -> Result<Todo, TodoErrors> {
         todo!();
     }
 
-    fn add_todo(&mut self, add_command_args: &AddCommandArgs) -> Result<Todo, TodoErrors> {
+    pub fn add_todo(&mut self, add_command_args: &AddCommandArgs) -> Result<Todo, TodoErrors> {
         todo!();
     }
 
-    fn delete_todo(&mut self, todo_id: &str) -> Result<Todo, TodoErrors> {
+    pub fn delete_todo(&mut self, todo_id: &str) -> Result<Todo, TodoErrors> {
         todo!();
     }
 
-    fn mark_todo_complete(&mut self, todo_id: &str) -> Result<Todo, TodoErrors> {
+    pub fn mark_todo_complete(&mut self, todo_id: &str) -> Result<Todo, TodoErrors> {
         todo!();
     }
 }
@@ -64,4 +64,64 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn should_return_empty_todo_list_if_datafile_not_exist() {
+        todo!();
+    }
+
+    #[test]
+    fn should_return_non_empty_todo_list_if_datafile_exists() {
+        todo!();
+    }
+
+    #[test]
+    fn should_return_todo_by_id_when_present() {
+        todo!()
+    }
+
+    #[test]
+    fn should_return_err_with_message_when_todo_by_id_not_present() {
+        todo!();
+    }
+
+    #[test]
+    fn should_return_todo_by_name_when_present() {
+        todo!()
+    }
+
+    #[test]
+    fn should_return_err_with_message_when_todo_by_name_not_present() {
+        todo!();
+    }
+
+    #[test]
+    fn should_return_new_added_todo_to_datafile() {
+        todo!();
+    }
+
+    #[test]
+    fn should_return_err_with_message_when_add_todo_fails() {
+        todo!();
+    }
+
+    #[test]
+    fn should_return_deleted_todo_by_id_when_present() {
+        todo!();
+    }
+
+    #[test]
+    fn should_return_err_with_message_when_delete_todo_by_id_not_present() {
+        todo!();
+    }
+
+    #[test]
+    fn should_mark_todo_completed_and_return_by_it_when_present() {
+        todo!();
+    }
+
+    #[test]
+    fn should_return_err_with_message_when_mark_todo_complete_is_absent() {
+        todo!();
+    }
 }
