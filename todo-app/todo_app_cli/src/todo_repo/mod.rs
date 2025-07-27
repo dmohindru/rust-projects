@@ -1,7 +1,11 @@
 use std::io::{Read, Write};
 
 use crate::cli::AddCommandArgs;
+use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
+use serde_json::{from_str, to_string_pretty};
+
+const ID_LENGTH: usize = 7;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Todo {
@@ -64,6 +68,43 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
+
+    fn setup() -> (Cursor<String>, Cursor<Vec<u8>>) {
+        let todos = vec![
+            Todo {
+                id: nanoid!(ID_LENGTH),
+                name: String::from("First Todo"),
+                description: String::from("First Todo description"),
+                completed: false,
+            },
+            Todo {
+                id: nanoid!(ID_LENGTH),
+                name: String::from("Second Todo"),
+                description: String::from("First Todo description"),
+                completed: false,
+            },
+            Todo {
+                id: nanoid!(ID_LENGTH),
+                name: String::from("Third Todo"),
+                description: String::from("First Todo description"),
+                completed: false,
+            },
+        ];
+
+        let input_str = to_string_pretty(&todos).unwrap();
+        let mut input_cursor = Cursor::new(input_str);
+        let mut output_cursor = Cursor::new(Vec::<u8>::new());
+        (input_cursor, output_cursor)
+    }
+
+    /*
+    Testing steps:
+    1. Prepare input/output cursor
+    2. Use input cursor to read data
+    3. Use output cursor to write data
+    4. Test the data written to output cursor
+     */
 
     #[test]
     fn should_return_empty_todo_list_if_datafile_not_exist() {
