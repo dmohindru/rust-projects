@@ -3,11 +3,11 @@ use std::io::{Read, Write};
 use crate::cli::AddCommandArgs;
 use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
-use serde_json::{from_str, to_string_pretty};
+use serde_json::{error::Error, from_str, to_string_pretty};
 
 const ID_LENGTH: usize = 7;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Todo {
     pub id: String,
     pub name: String,
@@ -15,6 +15,7 @@ pub struct Todo {
     pub completed: bool,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum TodoErrors {
     TodoAddError(String),
     TodoDeleteError(String),
@@ -33,7 +34,18 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
     }
 
     fn load_all(&mut self) -> Result<Vec<Todo>, TodoErrors> {
-        todo!();
+        let mut input = String::new();
+        let read_result = self.reader.read_to_string(&mut input);
+        match read_result {
+            Err(read_error) => return Err(TodoErrors::TodoGetError(read_error.to_string())),
+            _ => {}
+        };
+
+        let todos_parse_result: Result<Vec<Todo>, Error> = from_str(&input);
+        match todos_parse_result {
+            Ok(todos) => Ok(todos),
+            Err(parse_error) => Err(TodoErrors::TodoGetError(parse_error.to_string())),
+        }
     }
 
     fn save_all(&mut self, all_todos: Vec<Todo>) -> Result<(), TodoErrors> {
@@ -41,7 +53,7 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
     }
 
     pub fn get_all_todos(&mut self) -> Result<Vec<Todo>, TodoErrors> {
-        todo!();
+        self.load_all()
     }
 
     pub fn get_todo_by_id(&mut self, todo_id: String) -> Result<Todo, TodoErrors> {
@@ -68,10 +80,10 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Cursor;
+    use std::{io::Cursor, str::FromStr};
 
-    fn setup() -> (Cursor<String>, Cursor<Vec<u8>>) {
-        let todos = vec![
+    fn get_todo_list() -> Vec<Todo> {
+        vec![
             Todo {
                 id: nanoid!(ID_LENGTH),
                 name: String::from("First Todo"),
@@ -90,11 +102,13 @@ mod tests {
                 description: String::from("First Todo description"),
                 completed: false,
             },
-        ];
+        ]
+    }
 
-        let input_str = to_string_pretty(&todos).unwrap();
-        let mut input_cursor = Cursor::new(input_str);
-        let mut output_cursor = Cursor::new(Vec::<u8>::new());
+    fn setup(todos: &Vec<Todo>) -> (Cursor<String>, Cursor<Vec<u8>>) {
+        let input_str = to_string_pretty(todos).unwrap();
+        let input_cursor = Cursor::new(input_str);
+        let output_cursor = Cursor::new(Vec::<u8>::new());
         (input_cursor, output_cursor)
     }
 
@@ -108,22 +122,44 @@ mod tests {
 
     #[test]
     fn should_return_empty_todo_list_if_datafile_not_exist() {
-        todo!();
+        let empty_todos = Vec::<Todo>::new();
+        let (input_cur, output_cur) = setup(&empty_todos);
+        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let todos = todo_repository.get_all_todos().unwrap();
+        assert_eq!(&empty_todos, &todos);
     }
 
     #[test]
     fn should_return_non_empty_todo_list_if_datafile_exists() {
-        todo!();
+        let saved_todos = get_todo_list();
+        let (input_cur, output_cur) = setup(&saved_todos);
+        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let todos = todo_repository.get_all_todos().unwrap();
+        assert_eq!(&saved_todos, &todos);
     }
 
     #[test]
     fn should_return_todo_by_id_when_present() {
-        todo!()
+        let saved_todos = get_todo_list();
+        let (input_cur, output_cur) = setup(&saved_todos);
+        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let second_todo = &saved_todos[1];
+        let todo_id = String::from_str(&second_todo.id).unwrap();
+        let todo_by_id = todo_repository.get_todo_by_id(todo_id).unwrap();
+        assert_eq!(second_todo, &todo_by_id);
     }
 
     #[test]
     fn should_return_err_with_message_when_todo_by_id_not_present() {
-        todo!();
+        let not_present_id = nanoid!();
+        let saved_todos = get_todo_list();
+        let (input_cur, output_cur) = setup(&saved_todos);
+        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let get_result = todo_repository.get_todo_by_id(String::from(&not_present_id));
+        assert_eq!(
+            get_result.is_err_and(|message| ),
+            true
+        )
     }
 
     #[test]
