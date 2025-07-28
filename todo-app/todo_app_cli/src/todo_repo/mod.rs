@@ -1,4 +1,7 @@
-use std::io::{Read, Write};
+use std::{
+    cmp::Ordering,
+    io::{Read, Write},
+};
 
 use crate::cli::AddCommandArgs;
 use nanoid::nanoid;
@@ -57,7 +60,19 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
     }
 
     pub fn get_todo_by_id(&mut self, todo_id: String) -> Result<Todo, TodoErrors> {
-        todo!();
+        let todos_result = self.load_all();
+        let todos = match todos_result {
+            Ok(todos) => todos,
+            Err(todo_error) => return Err(todo_error),
+        };
+
+        match todos.iter().find(|todo| todo.id == todo_id) {
+            Some(todo) => Ok(todo.clone()),
+            None => Err(TodoErrors::TodoGetError(format!(
+                "Todo by id:{} not found",
+                todo_id
+            ))),
+        }
     }
 
     pub fn get_todo_by_name(&mut self, todo_name: String) -> Result<Todo, TodoErrors> {
@@ -112,14 +127,6 @@ mod tests {
         (input_cursor, output_cursor)
     }
 
-    /*
-    Testing steps:
-    1. Prepare input/output cursor
-    2. Use input cursor to read data
-    3. Use output cursor to write data
-    4. Test the data written to output cursor
-     */
-
     #[test]
     fn should_return_empty_todo_list_if_datafile_not_exist() {
         let empty_todos = Vec::<Todo>::new();
@@ -156,10 +163,10 @@ mod tests {
         let (input_cur, output_cur) = setup(&saved_todos);
         let mut todo_repository = TodoRepository::new(input_cur, output_cur);
         let get_result = todo_repository.get_todo_by_id(String::from(&not_present_id));
-        assert_eq!(
-            get_result.is_err_and(|message| ),
-            true
-        )
+        assert!(
+            matches!(get_result, Err(TodoErrors::TodoGetError(ref msg)) if msg.contains(&format!("Todo by id:{} not found", &not_present_id))
+            )
+        );
     }
 
     #[test]
