@@ -1,7 +1,4 @@
-use std::{
-    cmp::Ordering,
-    io::{Read, Write},
-};
+use std::io::{Read, Write};
 
 use crate::cli::AddCommandArgs;
 use nanoid::nanoid;
@@ -75,8 +72,28 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
         }
     }
 
-    pub fn get_todo_by_name(&mut self, todo_name: String) -> Result<Todo, TodoErrors> {
-        todo!();
+    pub fn get_todo_by_name(&mut self, todo_name: String) -> Result<Vec<Todo>, TodoErrors> {
+        let todos_result = self.load_all();
+        let todos = match todos_result {
+            Ok(todos) => todos,
+            Err(todo_error) => return Err(todo_error),
+        };
+
+        let todo_name_lowercase = todo_name.to_lowercase();
+        let found_todos: Vec<Todo> = todos
+            .iter()
+            .filter(|todo| todo.name.to_lowercase().contains(&todo_name_lowercase))
+            .cloned()
+            .collect();
+
+        if found_todos.is_empty() {
+            Err(TodoErrors::TodoGetError(format!(
+                "Todo by name: {} not found",
+                todo_name
+            )))
+        } else {
+            Ok(found_todos)
+        }
     }
 
     pub fn add_todo(&mut self, add_command_args: &AddCommandArgs) -> Result<Todo, TodoErrors> {
@@ -94,6 +111,8 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
 
 #[cfg(test)]
 mod tests {
+    use crate::todo_repo;
+
     use super::*;
     use std::{io::Cursor, str::FromStr};
 
@@ -170,13 +189,34 @@ mod tests {
     }
 
     #[test]
-    fn should_return_todo_by_name_when_present() {
-        todo!()
+    fn should_return_single_todo_by_name_when_present() {
+        let saved_todos = get_todo_list();
+        let (input_cur, output_cur) = setup(&saved_todos);
+        let mut todo_repo = TodoRepository::new(input_cur, output_cur);
+        let found_todos = todo_repo.get_todo_by_name(String::from("first")).unwrap();
+        let expected_todo_list = vec![saved_todos[0].clone()];
+        assert_eq!(expected_todo_list, found_todos);
+    }
+
+    #[test]
+    fn should_return_multiple_todos_by_name_when_present() {
+        let saved_todos = get_todo_list();
+        let (input_cur, output_cur) = setup(&saved_todos);
+        let mut todo_repo = TodoRepository::new(input_cur, output_cur);
+        let found_todos = todo_repo.get_todo_by_name(String::from("todo")).unwrap();
+        assert_eq!(saved_todos, found_todos);
     }
 
     #[test]
     fn should_return_err_with_message_when_todo_by_name_not_present() {
-        todo!();
+        let saved_todos = get_todo_list();
+        let todo_search_str = "some random";
+        let (input_cur, output_cur) = setup(&saved_todos);
+        let mut todo_repo = TodoRepository::new(input_cur, output_cur);
+        let find_result = todo_repo.get_todo_by_name(String::from_str(todo_search_str).unwrap());
+        assert!(
+            matches!(find_result, Err(TodoErrors::TodoGetError(ref msg)) if msg.contains(&format!("Todo by name: {} not found", todo_search_str)))
+        )
     }
 
     #[test]
