@@ -98,6 +98,21 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
 
     pub fn add_todo(&mut self, add_command_args: &AddCommandArgs) -> Result<Todo, TodoErrors> {
         todo!();
+        /*
+                fn process_todo<R: Read, W: Write>(mut reader: R, mut writer: W) -> anyhow::Result<()> {
+            let mut input = String::new();
+            reader.read_to_string(&mut input)?;
+            let mut todos: Vec<Todo> = from_str(&input)?;
+
+            for todo in &mut todos {
+                todo.done = true; // Mark all as done
+            }
+
+            let output = to_string_pretty(&todos)?;
+            writer.write_all(output.as_bytes())?;
+            Ok(())
+        }
+                 */
     }
 
     pub fn delete_todo(&mut self, todo_id: &str) -> Result<Todo, TodoErrors> {
@@ -107,11 +122,16 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
     pub fn mark_todo_complete(&mut self, todo_id: &str) -> Result<Todo, TodoErrors> {
         todo!();
     }
+
+    #[cfg(test)]
+    pub fn into_writer(self) -> W {
+        self.writer
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::todo_repo;
+    use crate::{cli::add, todo_repo};
 
     use super::*;
     use std::{io::Cursor, str::FromStr};
@@ -221,7 +241,37 @@ mod tests {
 
     #[test]
     fn should_return_new_added_todo_to_datafile() {
-        todo!();
+        let saved_todos = get_todo_list();
+        let (input_cur, output_cur) = setup(&saved_todos);
+        let mut todo_repo = TodoRepository::new(input_cur, output_cur);
+        let add_command_args = AddCommandArgs {
+            name: String::from("New Todo"),
+            description: String::from("New Todo Description"),
+        };
+        let added_todo = todo_repo.add_todo(&add_command_args).unwrap();
+
+        assert_eq!(&add_command_args.name, &added_todo.name);
+        assert_eq!(&add_command_args.description, &added_todo.description);
+        assert_eq!(&true, &added_todo.completed);
+
+        // Convert written data back to string
+        let output_bytes = todo_repo.into_writer().into_inner();
+        let output_str = String::from_utf8(output_bytes).unwrap();
+
+        // Deserialize for assertion
+        let updated_todos: Vec<Todo> = from_str(&output_str).unwrap();
+        let mut expected_todos = saved_todos.clone();
+        expected_todos.push(added_todo);
+        let test_pair: Vec<_> = expected_todos
+            .into_iter()
+            .zip(updated_todos.into_iter())
+            .collect();
+
+        test_pair.iter().for_each(|pair| {
+            assert_eq!(pair.0.name, pair.1.name);
+            assert_eq!(pair.0.description, pair.1.description);
+            assert_eq!(pair.0.completed, pair.1.completed);
+        });
     }
 
     #[test]
