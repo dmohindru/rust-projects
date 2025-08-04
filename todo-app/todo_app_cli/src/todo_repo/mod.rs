@@ -17,8 +17,6 @@ pub struct Todo {
 
 #[derive(Debug, PartialEq)]
 pub enum TodoErrors {
-    TodoAddError(String),
-    TodoDeleteError(String),
     TodoGetError(String),
     TodoUpdateError(String),
     TodoSaveError(String),
@@ -64,6 +62,20 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
         }
     }
 
+    fn find_in_memory_todo(
+        &mut self,
+        todos: &Vec<Todo>,
+        todo_id: &String,
+    ) -> Result<Todo, TodoErrors> {
+        match todos.iter().find(|todo| &todo.id == todo_id) {
+            Some(todo) => Ok(todo.clone()),
+            None => Err(TodoErrors::TodoGetError(format!(
+                "Todo by id:{} not found",
+                todo_id
+            ))),
+        }
+    }
+
     pub fn get_all_todos(&mut self) -> Result<Vec<Todo>, TodoErrors> {
         self.load_all()
     }
@@ -75,13 +87,7 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
             Err(todo_error) => return Err(todo_error),
         };
 
-        match todos.iter().find(|todo| todo.id == todo_id) {
-            Some(todo) => Ok(todo.clone()),
-            None => Err(TodoErrors::TodoGetError(format!(
-                "Todo by id:{} not found",
-                todo_id
-            ))),
-        }
+        self.find_in_memory_todo(&todos, &todo_id)
     }
 
     pub fn get_todo_by_name(&mut self, todo_name: String) -> Result<Vec<Todo>, TodoErrors> {
@@ -116,7 +122,7 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
         };
 
         let new_todo = Todo {
-            id: nanoid!(),
+            id: nanoid!(ID_LENGTH),
             name: String::from(&add_command_args.name),
             description: String::from(&add_command_args.description),
             completed: false,
@@ -130,12 +136,28 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
         }
     }
 
-    pub fn delete_todo(&mut self, todo_id: &str) -> Result<Todo, TodoErrors> {
-        todo!();
+    pub fn delete_todo(&mut self, todo_id: String) -> Result<Todo, TodoErrors> {
+        let mut all_todo = self.get_all_todos()?;
+        let todo_to_delete = self.find_in_memory_todo(&all_todo, &todo_id)?;
+        all_todo.retain(|todo| &todo.id != &todo_id);
+        match self.save_all(all_todo) {
+            Ok(_) => Ok(todo_to_delete),
+            Err(save_error) => Err(save_error),
+        }
     }
 
-    pub fn mark_todo_complete(&mut self, todo_id: &str) -> Result<Todo, TodoErrors> {
-        todo!();
+    pub fn mark_todo_complete(&mut self, todo_id: String) -> Result<Todo, TodoErrors> {
+        let mut all_todo = self.get_all_todos()?;
+        let pos = all_todo
+            .iter()
+            .position(|todo| todo.id == todo_id)
+            .ok_or_else(|| TodoErrors::TodoGetError(format!("Todo by id:{} not found", todo_id)))?;
+        all_todo[pos].completed = true;
+        let updated_todo = all_todo[pos].clone();
+        match self.save_all(all_todo) {
+            Ok(_) => Ok(updated_todo),
+            Err(save_error) => Err(save_error),
+        }
     }
 
     #[cfg(test)]
@@ -150,6 +172,20 @@ mod tests {
 
     use super::*;
     use std::{io::Cursor, str::FromStr};
+
+    struct FailingWriter;
+
+    impl Write for FailingWriter {
+        fn write(&mut self, _buf: &[u8]) -> std::io::Result<usize> {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Simulated write error",
+            ))
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
 
     fn get_todo_list() -> Vec<Todo> {
         vec![
@@ -291,26 +327,137 @@ mod tests {
 
     #[test]
     fn should_return_err_with_message_when_add_todo_fails() {
-        todo!();
+        let saved_todos = get_todo_list();
+        let (input_cur, _) = setup(&saved_todos);
+        let mut todo_repo = TodoRepository::new(input_cur, FailingWriter);
+        let add_command_args = AddCommandArgs {
+            name: String::from("New Todo"),
+            description: String::from("New Todo Description"),
+        };
+        let added_todo_result = todo_repo.add_todo(&add_command_args);
+        assert!(
+            matches!(added_todo_result, Err(TodoErrors::TodoSaveError(ref msg)) if msg.contains("Simulated write error"))
+        );
     }
 
     #[test]
     fn should_return_deleted_todo_by_id_when_present() {
-        todo!();
+        let index_to_remove = 1;
+        let mut saved_todos = get_todo_list();
+        let (input_cur, output_cur) = setup(&saved_todos);
+        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let second_todo = &saved_todos[index_to_remove];
+        let todo_by_id = todo_repository
+            .delete_todo(String::from(&second_todo.id))
+            .unwrap();
+        assert_eq!(second_todo, &todo_by_id);
+
+        // Convert written data back to string
+        let output_bytes = todo_repository.into_writer().into_inner();
+        let output_str = String::from_utf8(output_bytes).unwrap();
+
+        // Deserialize for assertion
+        let updated_todos: Vec<Todo> = from_str(&output_str).unwrap();
+        saved_todos.remove(index_to_remove);
+        let test_pair: Vec<_> = saved_todos
+            .into_iter()
+            .zip(updated_todos.into_iter())
+            .collect();
+
+        test_pair.iter().for_each(|pair| {
+            assert_eq!(pair.0.name, pair.1.name);
+            assert_eq!(pair.0.description, pair.1.description);
+            assert_eq!(pair.0.completed, pair.1.completed);
+        });
     }
 
     #[test]
     fn should_return_err_with_message_when_delete_todo_by_id_not_present() {
-        todo!();
+        let not_present_id = nanoid!();
+        let saved_todos = get_todo_list();
+        let (input_cur, output_cur) = setup(&saved_todos);
+        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let get_result = todo_repository.delete_todo(String::from(&not_present_id));
+        assert!(
+            matches!(get_result, Err(TodoErrors::TodoGetError(ref msg)) if msg.contains(&format!("Todo by id:{} not found", &not_present_id))
+            )
+        );
+    }
+
+    #[test]
+    fn should_return_err_with_message_when_delete_todo_by_id_present_but_saving_failed() {
+        let index_to_remove = 1;
+        let saved_todos = get_todo_list();
+        let (input_cur, _) = setup(&saved_todos);
+        let mut todo_repository = TodoRepository::new(input_cur, FailingWriter);
+        let second_todo = &saved_todos[index_to_remove];
+        let delete_todo_by_id_result = todo_repository.delete_todo(String::from(&second_todo.id));
+        assert!(
+            matches!(delete_todo_by_id_result, Err(TodoErrors::TodoSaveError(ref msg)) if msg.contains("Simulated write error"))
+        );
     }
 
     #[test]
     fn should_mark_todo_completed_and_return_by_it_when_present() {
-        todo!();
+        let index_to_modify = 1;
+        let mut saved_todos = get_todo_list();
+        let (input_cur, output_cur) = setup(&saved_todos);
+        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let second_todo = &saved_todos[index_to_modify];
+        let todo_by_id = todo_repository
+            .mark_todo_complete(String::from(&second_todo.id))
+            .unwrap();
+        let updated_todo = Todo {
+            id: String::from(&second_todo.id),
+            name: String::from(&second_todo.name),
+            description: String::from(&second_todo.description),
+            completed: true,
+        };
+        assert_eq!(&updated_todo, &todo_by_id);
+
+        // Convert written data back to string
+        let output_bytes = todo_repository.into_writer().into_inner();
+        let output_str = String::from_utf8(output_bytes).unwrap();
+
+        // Deserialize for assertion
+        let updated_todos: Vec<Todo> = from_str(&output_str).unwrap();
+        saved_todos[index_to_modify] = updated_todo;
+        let test_pair: Vec<_> = saved_todos
+            .into_iter()
+            .zip(updated_todos.into_iter())
+            .collect();
+
+        test_pair.iter().for_each(|pair| {
+            assert_eq!(pair.0.name, pair.1.name);
+            assert_eq!(pair.0.description, pair.1.description);
+            assert_eq!(pair.0.completed, pair.1.completed);
+        });
     }
 
     #[test]
     fn should_return_err_with_message_when_mark_todo_complete_is_absent() {
-        todo!();
+        let not_present_id = nanoid!();
+        let saved_todos = get_todo_list();
+        let (input_cur, output_cur) = setup(&saved_todos);
+        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let get_result = todo_repository.mark_todo_complete(String::from(&not_present_id));
+        assert!(
+            matches!(get_result, Err(TodoErrors::TodoGetError(ref msg)) if msg.contains(&format!("Todo by id:{} not found", &not_present_id))
+            )
+        );
+    }
+
+    #[test]
+    fn should_return_err_with_message_when_mark_todo_is_present_but_save_failed() {
+        let index_to_modify = 1;
+        let saved_todos = get_todo_list();
+        let (input_cur, _) = setup(&saved_todos);
+        let mut todo_repository = TodoRepository::new(input_cur, FailingWriter);
+        let second_todo = &saved_todos[index_to_modify];
+        let modify_todo_by_id_result =
+            todo_repository.mark_todo_complete(String::from(&second_todo.id));
+        assert!(
+            matches!(modify_todo_by_id_result, Err(TodoErrors::TodoSaveError(ref msg)) if msg.contains("Simulated write error"))
+        );
     }
 }
