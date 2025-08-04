@@ -168,7 +168,6 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{cli::add, todo_repo};
 
     use super::*;
     use std::{io::Cursor, str::FromStr};
