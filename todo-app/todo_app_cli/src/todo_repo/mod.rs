@@ -21,6 +21,7 @@ pub enum TodoErrors {
     TodoDeleteError(String),
     TodoGetError(String),
     TodoUpdateError(String),
+    TodoSaveError(String),
 }
 
 pub struct TodoRepository<R: Read, W: Write> {
@@ -49,7 +50,18 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
     }
 
     fn save_all(&mut self, all_todos: Vec<Todo>) -> Result<(), TodoErrors> {
-        todo!();
+        let output_result = to_string_pretty(&all_todos);
+        let output = match output_result {
+            Ok(output) => output,
+            Err(pretty_print_error) => {
+                return Err(TodoErrors::TodoSaveError(pretty_print_error.to_string()));
+            }
+        };
+
+        match self.writer.write_all(output.as_bytes()) {
+            Ok(_) => Ok(()),
+            Err(save_error) => Err(TodoErrors::TodoSaveError(save_error.to_string())),
+        }
     }
 
     pub fn get_all_todos(&mut self) -> Result<Vec<Todo>, TodoErrors> {
@@ -97,22 +109,25 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
     }
 
     pub fn add_todo(&mut self, add_command_args: &AddCommandArgs) -> Result<Todo, TodoErrors> {
-        todo!();
-        /*
-                fn process_todo<R: Read, W: Write>(mut reader: R, mut writer: W) -> anyhow::Result<()> {
-            let mut input = String::new();
-            reader.read_to_string(&mut input)?;
-            let mut todos: Vec<Todo> = from_str(&input)?;
+        let todos_result = self.load_all();
+        let mut todos = match todos_result {
+            Ok(todos) => todos,
+            Err(todo_error) => return Err(todo_error),
+        };
 
-            for todo in &mut todos {
-                todo.done = true; // Mark all as done
-            }
+        let new_todo = Todo {
+            id: nanoid!(),
+            name: String::from(&add_command_args.name),
+            description: String::from(&add_command_args.description),
+            completed: false,
+        };
+        let todo_to_return = new_todo.clone();
+        todos.push(new_todo);
 
-            let output = to_string_pretty(&todos)?;
-            writer.write_all(output.as_bytes())?;
-            Ok(())
+        match self.save_all(todos) {
+            Ok(_) => Ok(todo_to_return),
+            Err(save_error) => Err(save_error),
         }
-                 */
     }
 
     pub fn delete_todo(&mut self, todo_id: &str) -> Result<Todo, TodoErrors> {
@@ -252,7 +267,7 @@ mod tests {
 
         assert_eq!(&add_command_args.name, &added_todo.name);
         assert_eq!(&add_command_args.description, &added_todo.description);
-        assert_eq!(&true, &added_todo.completed);
+        assert_eq!(&false, &added_todo.completed);
 
         // Convert written data back to string
         let output_bytes = todo_repo.into_writer().into_inner();
