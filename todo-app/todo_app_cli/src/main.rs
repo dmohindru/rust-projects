@@ -1,5 +1,7 @@
 mod cli;
+mod printer;
 mod todo_repo;
+
 use clap::Parser;
 use cli::{Commands, TodoCli};
 fn main() {
