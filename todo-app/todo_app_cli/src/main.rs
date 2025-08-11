@@ -4,12 +4,21 @@ mod todo_repo;
 
 use clap::Parser;
 use cli::{Commands, TodoCli};
+use std::fs::{File, OpenOptions};
+use std::io::{BufReader, BufWriter};
+
+use crate::cli::GetCommand;
+use crate::todo_repo::TodoRepository;
 fn main() {
     let cli = TodoCli::parse();
 
+    let (reader, writer) = open_data_file("/tmp/todo.json");
+    let mut todo_repo = TodoRepository::new(reader, writer);
+
     match &cli.command {
         Commands::Get { get_command } => {
-            println!("Get command params is: {get_command:?}")
+            //println!("Get command params is: {get_command:?}");
+            handle_get_command(&mut todo_repo, get_command);
         }
         Commands::Add(add_args) => {
             println!("Add command params is: {add_args:?}")
@@ -26,5 +35,44 @@ fn main() {
         println!("Printing output in format: {:?}", output);
     } else {
         println!("Printing output in default format of text");
+    }
+}
+
+fn open_data_file(file_path: &str) -> (BufReader<File>, BufWriter<File>) {
+    // Open the file for reading (create if it doesn't exist)
+    let reader_file = OpenOptions::new()
+        .read(true)
+        .create(true)
+        .open(file_path)
+        .expect("Failed to open file for reading");
+    let reader = BufReader::new(reader_file);
+
+    // Open the file for writing (overwrite, not append; create if it doesn't exist)
+    let writer_file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true) // This ensures the file is overwritten
+        .open(file_path)
+        .expect("Failed to open file for writing");
+    let writer = BufWriter::new(writer_file);
+
+    (reader, writer)
+}
+
+fn handle_get_command(
+    todo_repo: &mut TodoRepository<BufReader<File>, BufWriter<File>>,
+    get_command: &GetCommand,
+) {
+    match get_command {
+        GetCommand::All => {
+            let all_todos = todo_repo.get_all_todos();
+        }
+        GetCommand::Id(todo_id_args) => {
+            let todo_by_id = todo_repo.get_todo_by_id(String::from(&todo_id_args.todo_id));
+        }
+        GetCommand::Name(todo_name_args) => {
+            let todo_by_name =
+                todo_repo.get_todo_by_name(String::from(&todo_name_args.search_string));
+        }
     }
 }
