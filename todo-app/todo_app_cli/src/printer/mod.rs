@@ -1,6 +1,6 @@
 use crate::cli::OutputFormat;
 use crate::todo_repo::Todo;
-use serde_json::{error::Error, from_str, to_string_pretty};
+use serde_json::to_string_pretty;
 use std::io::Write;
 
 pub struct TodoPrinter<W: Write> {
@@ -13,11 +13,39 @@ impl<W: Write> TodoPrinter<W> {
     }
 
     pub fn print_single_todo(&mut self, todo: Todo, format: OutputFormat) {
-        todo!()
+        let output_str = match format {
+            OutputFormat::Text => Self::get_todo_text_format(todo),
+            OutputFormat::Json => to_string_pretty(&todo).unwrap(),
+        };
+        writeln!(self.writer, "{}", output_str).unwrap();
     }
 
-    pub fn print_list_todo(&mut self, todo: Vec<Todo>, format: OutputFormat) {
-        todo!()
+    pub fn print_list_todo(&mut self, todo_list: Vec<Todo>, format: OutputFormat) {
+        let output_str = match format {
+            OutputFormat::Text => todo_list
+                .into_iter()
+                .map(|todo| Self::get_todo_text_format(todo))
+                .collect::<Vec<_>>()
+                .join("\n"),
+            OutputFormat::Json => to_string_pretty(&todo_list).unwrap(),
+        };
+        writeln!(self.writer, "{}", output_str).unwrap();
+    }
+
+    fn first_10_chars(s: &String) -> String {
+        s.chars().take(10).collect()
+    }
+
+    fn get_todo_text_format(todo: Todo) -> String {
+        // expected format
+        // id done title description
+        format!(
+            "{}\t{}\t{}\t{}",
+            todo.id,
+            todo.completed,
+            Self::first_10_chars(&todo.name),
+            todo.description
+        )
     }
 
     #[cfg(test)]
@@ -30,7 +58,6 @@ impl<W: Write> TodoPrinter<W> {
 mod tests {
     use super::*;
     use nanoid::nanoid;
-    use serde_json::to_string_pretty;
     use std::io::Cursor;
 
     const ID_LENGTH: usize = 7;
@@ -98,7 +125,7 @@ mod tests {
         let output_bytes = printer.into_writer().into_inner();
         let output_str = String::from_utf8(output_bytes).unwrap();
 
-        let expected_output = get_expected_text_format(single_todo);
+        let expected_output = format!("{}\n", get_expected_text_format(single_todo));
 
         assert_eq!(expected_output, output_str);
     }
@@ -114,7 +141,7 @@ mod tests {
         let output_bytes = printer.into_writer().into_inner();
         let output_str = String::from_utf8(output_bytes).unwrap();
 
-        let expected_output = to_string_pretty(&single_todo).unwrap();
+        let expected_output = format!("{}\n", to_string_pretty(&single_todo).unwrap());
 
         assert_eq!(expected_output, output_str);
     }
@@ -130,11 +157,12 @@ mod tests {
         let output_bytes = printer.into_writer().into_inner();
         let output_str = String::from_utf8(output_bytes).unwrap();
 
-        let expected_output = list_todo
+        let list_output = list_todo
             .into_iter()
             .map(|todo| get_expected_text_format(todo))
             .collect::<Vec<_>>()
             .join("\n");
+        let expected_output = format!("{}\n", list_output);
 
         assert_eq!(expected_output, output_str);
     }
@@ -150,7 +178,7 @@ mod tests {
         let output_bytes = printer.into_writer().into_inner();
         let output_str = String::from_utf8(output_bytes).unwrap();
 
-        let expected_output = to_string_pretty(&list_todo).unwrap();
+        let expected_output = format!("{}\n", to_string_pretty(&list_todo).unwrap());
 
         assert_eq!(expected_output, output_str);
     }
