@@ -22,6 +22,16 @@ pub enum TodoErrors {
     TodoSaveError(String),
 }
 
+impl TodoErrors {
+    pub fn error_message(&self) -> &str {
+        match self {
+            TodoErrors::TodoGetError(msg) => msg,
+            TodoErrors::TodoUpdateError(msg) => msg,
+            TodoErrors::TodoSaveError(msg) => msg,
+        }
+    }
+}
+
 pub struct TodoRepository<R: Read, W: Write> {
     reader: R,
     writer: W,
