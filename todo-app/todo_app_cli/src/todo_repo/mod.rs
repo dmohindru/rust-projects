@@ -1,6 +1,9 @@
+mod data_access;
+
 use std::io::{Read, Write};
 
 use crate::cli::AddCommandArgs;
+pub use data_access::{CursorDataAccess, FileDataAccess, TodoDataAccess};
 use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
 use serde_json::{error::Error, from_str, to_string_pretty};
@@ -30,23 +33,17 @@ impl TodoErrors {
     }
 }
 
-pub struct TodoRepository<R: Read, W: Write> {
-    reader: R,
-    writer: W,
+pub struct TodoRepository<D: TodoDataAccess> {
+    data_access: D,
 }
 
-impl<R: Read, W: Write> TodoRepository<R, W> {
-    pub fn new(reader: R, writer: W) -> Self {
-        Self { reader, writer }
+impl<D: TodoDataAccess> TodoRepository<D> {
+    pub fn new(data_access: D) -> Self {
+        Self { data_access }
     }
 
     fn load_all(&mut self) -> Result<Vec<Todo>, TodoErrors> {
-        let mut input = String::new();
-        let read_result = self.reader.read_to_string(&mut input);
-        match read_result {
-            Err(read_error) => return Err(TodoErrors::TodoGetError(read_error.to_string())),
-            _ => {}
-        };
+        let input = self.data_access.read_all()?;
 
         let todos_parse_result: Result<Vec<Todo>, Error> = from_str(&input);
         match todos_parse_result {
@@ -63,11 +60,8 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
                 return Err(TodoErrors::TodoSaveError(pretty_print_error.to_string()));
             }
         };
-
-        match self.writer.write_all(output.as_bytes()) {
-            Ok(_) => Ok(()),
-            Err(save_error) => Err(TodoErrors::TodoSaveError(save_error.to_string())),
-        }
+        self.data_access.write_all(output)?;
+        Ok(())
     }
 
     fn find_in_memory_todo(
@@ -169,8 +163,8 @@ impl<R: Read, W: Write> TodoRepository<R, W> {
     }
 
     #[cfg(test)]
-    pub fn into_writer(self) -> W {
-        self.writer
+    pub fn into_writer(self) -> D {
+        self.data_access
     }
 }
 
@@ -217,18 +211,18 @@ mod tests {
         ]
     }
 
-    fn setup(todos: &Vec<Todo>) -> (Cursor<String>, Cursor<Vec<u8>>) {
+    fn setup(todos: &Vec<Todo>) -> CursorDataAccess {
         let input_str = to_string_pretty(todos).unwrap();
         let input_cursor = Cursor::new(input_str);
         let output_cursor = Cursor::new(Vec::<u8>::new());
-        (input_cursor, output_cursor)
+        CursorDataAccess::new(input_cursor, output_cursor)
     }
 
     #[test]
     fn should_return_empty_todo_list_if_datafile_not_exist() {
         let empty_todos = Vec::<Todo>::new();
-        let (input_cur, output_cur) = setup(&empty_todos);
-        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let cursor_data_access = setup(&empty_todos);
+        let mut todo_repository = TodoRepository::new(cursor_data_access);
         let todos = todo_repository.get_all_todos().unwrap();
         assert_eq!(&empty_todos, &todos);
     }
@@ -236,8 +230,8 @@ mod tests {
     #[test]
     fn should_return_non_empty_todo_list_if_datafile_exists() {
         let saved_todos = get_todo_list();
-        let (input_cur, output_cur) = setup(&saved_todos);
-        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let cursor_data_access = setup(&saved_todos);
+        let mut todo_repository = TodoRepository::new(cursor_data_access);
         let todos = todo_repository.get_all_todos().unwrap();
         assert_eq!(&saved_todos, &todos);
     }
@@ -245,8 +239,8 @@ mod tests {
     #[test]
     fn should_return_todo_by_id_when_present() {
         let saved_todos = get_todo_list();
-        let (input_cur, output_cur) = setup(&saved_todos);
-        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let cursor_data_access = setup(&saved_todos);
+        let mut todo_repository = TodoRepository::new(cursor_data_access);
         let second_todo = &saved_todos[1];
         let todo_id = String::from_str(&second_todo.id).unwrap();
         let todo_by_id = todo_repository.get_todo_by_id(todo_id).unwrap();
@@ -257,8 +251,8 @@ mod tests {
     fn should_return_err_with_message_when_todo_by_id_not_present() {
         let not_present_id = nanoid!();
         let saved_todos = get_todo_list();
-        let (input_cur, output_cur) = setup(&saved_todos);
-        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let cursor_data_access = setup(&saved_todos);
+        let mut todo_repository = TodoRepository::new(cursor_data_access);
         let get_result = todo_repository.get_todo_by_id(String::from(&not_present_id));
         assert!(
             matches!(get_result, Err(TodoErrors::TodoGetError(ref msg)) if msg.contains(&format!("Todo by id:{} not found", &not_present_id))
@@ -269,8 +263,8 @@ mod tests {
     #[test]
     fn should_return_single_todo_by_name_when_present() {
         let saved_todos = get_todo_list();
-        let (input_cur, output_cur) = setup(&saved_todos);
-        let mut todo_repo = TodoRepository::new(input_cur, output_cur);
+        let cursor_data_access = setup(&saved_todos);
+        let mut todo_repo = TodoRepository::new(cursor_data_access);
         let found_todos = todo_repo.get_todo_by_name(String::from("first")).unwrap();
         let expected_todo_list = vec![saved_todos[0].clone()];
         assert_eq!(expected_todo_list, found_todos);
@@ -279,8 +273,8 @@ mod tests {
     #[test]
     fn should_return_multiple_todos_by_name_when_present() {
         let saved_todos = get_todo_list();
-        let (input_cur, output_cur) = setup(&saved_todos);
-        let mut todo_repo = TodoRepository::new(input_cur, output_cur);
+        let cursor_data_access = setup(&saved_todos);
+        let mut todo_repo = TodoRepository::new(cursor_data_access);
         let found_todos = todo_repo.get_todo_by_name(String::from("todo")).unwrap();
         assert_eq!(saved_todos, found_todos);
     }
