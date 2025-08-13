@@ -18,7 +18,6 @@ pub struct Todo {
 #[derive(Debug, PartialEq)]
 pub enum TodoErrors {
     TodoGetError(String),
-    TodoUpdateError(String),
     TodoSaveError(String),
 }
 
@@ -26,7 +25,6 @@ impl TodoErrors {
     pub fn error_message(&self) -> &str {
         match self {
             TodoErrors::TodoGetError(msg) => msg,
-            TodoErrors::TodoUpdateError(msg) => msg,
             TodoErrors::TodoSaveError(msg) => msg,
         }
     }
