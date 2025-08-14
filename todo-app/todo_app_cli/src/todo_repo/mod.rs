@@ -1,9 +1,7 @@
 mod data_access;
 
-use std::io::{Read, Write};
-
 use crate::cli::AddCommandArgs;
-pub use data_access::{CursorDataAccess, FileDataAccess, TodoDataAccess};
+pub use data_access::{FileDataAccess, TodoDataAccess};
 use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
 use serde_json::{error::Error, from_str, to_string_pretty};
@@ -172,21 +170,8 @@ impl<D: TodoDataAccess> TodoRepository<D> {
 mod tests {
 
     use super::*;
+    use data_access::{CursorDataAccess, FailingDataAccess};
     use std::{io::Cursor, str::FromStr};
-
-    struct FailingWriter;
-
-    impl Write for FailingWriter {
-        fn write(&mut self, _buf: &[u8]) -> std::io::Result<usize> {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Simulated write error",
-            ))
-        }
-        fn flush(&mut self) -> std::io::Result<()> {
-            Ok(())
-        }
-    }
 
     fn get_todo_list() -> Vec<Todo> {
         vec![
@@ -211,17 +196,23 @@ mod tests {
         ]
     }
 
-    fn setup(todos: &Vec<Todo>) -> CursorDataAccess {
+    fn get_cursor_data_access(todos: &Vec<Todo>) -> CursorDataAccess {
         let input_str = to_string_pretty(todos).unwrap();
         let input_cursor = Cursor::new(input_str);
         let output_cursor = Cursor::new(Vec::<u8>::new());
         CursorDataAccess::new(input_cursor, output_cursor)
     }
 
+    fn get_failing_data_access(todos: &Vec<Todo>) -> FailingDataAccess {
+        let input_str = to_string_pretty(&todos).unwrap();
+        let input_cursor = Cursor::new(input_str);
+        FailingDataAccess::new(input_cursor)
+    }
+
     #[test]
     fn should_return_empty_todo_list_if_datafile_not_exist() {
         let empty_todos = Vec::<Todo>::new();
-        let cursor_data_access = setup(&empty_todos);
+        let cursor_data_access = get_cursor_data_access(&empty_todos);
         let mut todo_repository = TodoRepository::new(cursor_data_access);
         let todos = todo_repository.get_all_todos().unwrap();
         assert_eq!(&empty_todos, &todos);
@@ -230,7 +221,7 @@ mod tests {
     #[test]
     fn should_return_non_empty_todo_list_if_datafile_exists() {
         let saved_todos = get_todo_list();
-        let cursor_data_access = setup(&saved_todos);
+        let cursor_data_access = get_cursor_data_access(&saved_todos);
         let mut todo_repository = TodoRepository::new(cursor_data_access);
         let todos = todo_repository.get_all_todos().unwrap();
         assert_eq!(&saved_todos, &todos);
@@ -239,7 +230,7 @@ mod tests {
     #[test]
     fn should_return_todo_by_id_when_present() {
         let saved_todos = get_todo_list();
-        let cursor_data_access = setup(&saved_todos);
+        let cursor_data_access = get_cursor_data_access(&saved_todos);
         let mut todo_repository = TodoRepository::new(cursor_data_access);
         let second_todo = &saved_todos[1];
         let todo_id = String::from_str(&second_todo.id).unwrap();
@@ -251,7 +242,7 @@ mod tests {
     fn should_return_err_with_message_when_todo_by_id_not_present() {
         let not_present_id = nanoid!();
         let saved_todos = get_todo_list();
-        let cursor_data_access = setup(&saved_todos);
+        let cursor_data_access = get_cursor_data_access(&saved_todos);
         let mut todo_repository = TodoRepository::new(cursor_data_access);
         let get_result = todo_repository.get_todo_by_id(String::from(&not_present_id));
         assert!(
@@ -263,7 +254,7 @@ mod tests {
     #[test]
     fn should_return_single_todo_by_name_when_present() {
         let saved_todos = get_todo_list();
-        let cursor_data_access = setup(&saved_todos);
+        let cursor_data_access = get_cursor_data_access(&saved_todos);
         let mut todo_repo = TodoRepository::new(cursor_data_access);
         let found_todos = todo_repo.get_todo_by_name(String::from("first")).unwrap();
         let expected_todo_list = vec![saved_todos[0].clone()];
@@ -273,7 +264,7 @@ mod tests {
     #[test]
     fn should_return_multiple_todos_by_name_when_present() {
         let saved_todos = get_todo_list();
-        let cursor_data_access = setup(&saved_todos);
+        let cursor_data_access = get_cursor_data_access(&saved_todos);
         let mut todo_repo = TodoRepository::new(cursor_data_access);
         let found_todos = todo_repo.get_todo_by_name(String::from("todo")).unwrap();
         assert_eq!(saved_todos, found_todos);
@@ -283,8 +274,8 @@ mod tests {
     fn should_return_err_with_message_when_todo_by_name_not_present() {
         let saved_todos = get_todo_list();
         let todo_search_str = "some random";
-        let (input_cur, output_cur) = setup(&saved_todos);
-        let mut todo_repo = TodoRepository::new(input_cur, output_cur);
+        let cursor_data_access = get_cursor_data_access(&saved_todos);
+        let mut todo_repo = TodoRepository::new(cursor_data_access);
         let find_result = todo_repo.get_todo_by_name(String::from_str(todo_search_str).unwrap());
         assert!(
             matches!(find_result, Err(TodoErrors::TodoGetError(ref msg)) if msg.contains(&format!("Todo by name: {} not found", todo_search_str)))
@@ -294,8 +285,8 @@ mod tests {
     #[test]
     fn should_return_new_added_todo_to_datafile() {
         let saved_todos = get_todo_list();
-        let (input_cur, output_cur) = setup(&saved_todos);
-        let mut todo_repo = TodoRepository::new(input_cur, output_cur);
+        let cursor_data_access = get_cursor_data_access(&saved_todos);
+        let mut todo_repo = TodoRepository::new(cursor_data_access);
         let add_command_args = AddCommandArgs {
             name: String::from("New Todo"),
             description: String::from("New Todo Description"),
@@ -307,7 +298,7 @@ mod tests {
         assert_eq!(&false, &added_todo.completed);
 
         // Convert written data back to string
-        let output_bytes = todo_repo.into_writer().into_inner();
+        let output_bytes = todo_repo.into_writer().writer.into_inner();
         let output_str = String::from_utf8(output_bytes).unwrap();
 
         // Deserialize for assertion
@@ -329,8 +320,8 @@ mod tests {
     #[test]
     fn should_return_err_with_message_when_add_todo_fails() {
         let saved_todos = get_todo_list();
-        let (input_cur, _) = setup(&saved_todos);
-        let mut todo_repo = TodoRepository::new(input_cur, FailingWriter);
+        let failing_data_access = get_failing_data_access(&saved_todos);
+        let mut todo_repo = TodoRepository::new(failing_data_access);
         let add_command_args = AddCommandArgs {
             name: String::from("New Todo"),
             description: String::from("New Todo Description"),
@@ -345,8 +336,8 @@ mod tests {
     fn should_return_deleted_todo_by_id_when_present() {
         let index_to_remove = 1;
         let mut saved_todos = get_todo_list();
-        let (input_cur, output_cur) = setup(&saved_todos);
-        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let cursor_data_access = get_cursor_data_access(&saved_todos);
+        let mut todo_repository = TodoRepository::new(cursor_data_access);
         let second_todo = &saved_todos[index_to_remove];
         let todo_by_id = todo_repository
             .delete_todo(String::from(&second_todo.id))
@@ -354,7 +345,7 @@ mod tests {
         assert_eq!(second_todo, &todo_by_id);
 
         // Convert written data back to string
-        let output_bytes = todo_repository.into_writer().into_inner();
+        let output_bytes = todo_repository.into_writer().writer.into_inner();
         let output_str = String::from_utf8(output_bytes).unwrap();
 
         // Deserialize for assertion
@@ -376,8 +367,8 @@ mod tests {
     fn should_return_err_with_message_when_delete_todo_by_id_not_present() {
         let not_present_id = nanoid!();
         let saved_todos = get_todo_list();
-        let (input_cur, output_cur) = setup(&saved_todos);
-        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let cursor_data_access = get_cursor_data_access(&saved_todos);
+        let mut todo_repository = TodoRepository::new(cursor_data_access);
         let get_result = todo_repository.delete_todo(String::from(&not_present_id));
         assert!(
             matches!(get_result, Err(TodoErrors::TodoGetError(ref msg)) if msg.contains(&format!("Todo by id:{} not found", &not_present_id))
@@ -389,8 +380,8 @@ mod tests {
     fn should_return_err_with_message_when_delete_todo_by_id_present_but_saving_failed() {
         let index_to_remove = 1;
         let saved_todos = get_todo_list();
-        let (input_cur, _) = setup(&saved_todos);
-        let mut todo_repository = TodoRepository::new(input_cur, FailingWriter);
+        let failing_data_access = get_failing_data_access(&saved_todos);
+        let mut todo_repository = TodoRepository::new(failing_data_access);
         let second_todo = &saved_todos[index_to_remove];
         let delete_todo_by_id_result = todo_repository.delete_todo(String::from(&second_todo.id));
         assert!(
@@ -402,8 +393,8 @@ mod tests {
     fn should_mark_todo_completed_and_return_by_it_when_present() {
         let index_to_modify = 1;
         let mut saved_todos = get_todo_list();
-        let (input_cur, output_cur) = setup(&saved_todos);
-        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let cursor_data_access = get_cursor_data_access(&saved_todos);
+        let mut todo_repository = TodoRepository::new(cursor_data_access);
         let second_todo = &saved_todos[index_to_modify];
         let todo_by_id = todo_repository
             .mark_todo_complete(String::from(&second_todo.id))
@@ -417,7 +408,7 @@ mod tests {
         assert_eq!(&updated_todo, &todo_by_id);
 
         // Convert written data back to string
-        let output_bytes = todo_repository.into_writer().into_inner();
+        let output_bytes = todo_repository.into_writer().writer.into_inner();
         let output_str = String::from_utf8(output_bytes).unwrap();
 
         // Deserialize for assertion
@@ -439,8 +430,8 @@ mod tests {
     fn should_return_err_with_message_when_mark_todo_complete_is_absent() {
         let not_present_id = nanoid!();
         let saved_todos = get_todo_list();
-        let (input_cur, output_cur) = setup(&saved_todos);
-        let mut todo_repository = TodoRepository::new(input_cur, output_cur);
+        let cursor_data_access = get_cursor_data_access(&saved_todos);
+        let mut todo_repository = TodoRepository::new(cursor_data_access);
         let get_result = todo_repository.mark_todo_complete(String::from(&not_present_id));
         assert!(
             matches!(get_result, Err(TodoErrors::TodoGetError(ref msg)) if msg.contains(&format!("Todo by id:{} not found", &not_present_id))
@@ -452,8 +443,8 @@ mod tests {
     fn should_return_err_with_message_when_mark_todo_is_present_but_save_failed() {
         let index_to_modify = 1;
         let saved_todos = get_todo_list();
-        let (input_cur, _) = setup(&saved_todos);
-        let mut todo_repository = TodoRepository::new(input_cur, FailingWriter);
+        let failing_data_access = get_failing_data_access(&saved_todos);
+        let mut todo_repository = TodoRepository::new(failing_data_access);
         let second_todo = &saved_todos[index_to_modify];
         let modify_todo_by_id_result =
             todo_repository.mark_todo_complete(String::from(&second_todo.id));

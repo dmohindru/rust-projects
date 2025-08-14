@@ -49,8 +49,8 @@ impl TodoDataAccess for FileDataAccess {
 
 // TODO: Move this implementation into test config
 pub struct CursorDataAccess {
-    reader: Cursor<String>,
-    writer: Cursor<Vec<u8>>,
+    pub reader: Cursor<String>,
+    pub writer: Cursor<Vec<u8>>,
 }
 
 impl CursorDataAccess {
@@ -75,11 +75,23 @@ impl TodoDataAccess for CursorDataAccess {
     }
 }
 
-pub struct FailingDataAccess;
+pub struct FailingDataAccess {
+    pub reader: Cursor<String>,
+}
+
+impl FailingDataAccess {
+    pub fn new(reader: Cursor<String>) -> Self {
+        Self { reader }
+    }
+}
 
 impl TodoDataAccess for FailingDataAccess {
     fn read_all(&mut self) -> Result<String, TodoErrors> {
-        Ok(String::from("Some Data"))
+        let mut input = String::new();
+        self.reader
+            .read_to_string(&mut input)
+            .map_err(|e| TodoErrors::TodoGetError(e.to_string()))?;
+        Ok(input)
     }
 
     fn write_all(&mut self, data: String) -> Result<(), TodoErrors> {
