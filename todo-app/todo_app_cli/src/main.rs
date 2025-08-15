@@ -13,8 +13,9 @@ use crate::printer::TodoPrinter;
 use crate::todo_repo::{FileDataAccess, TodoRepository};
 fn main() {
     let cli = TodoCli::parse();
-
-    let file_data_access = FileDataAccess::new("/tmp/todo.json");
+    let mut path = std::env::temp_dir();
+    path.push("todo.json");
+    let file_data_access = FileDataAccess::new(path.to_str().unwrap());
     let mut todo_repo = TodoRepository::new(file_data_access);
     let mut todo_printer = TodoPrinter::<Stdout>::new(std::io::stdout());
     let output_format = cli.output.unwrap_or(OutputFormat::Text);

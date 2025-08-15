@@ -22,6 +22,7 @@ impl TodoDataAccess for FileDataAccess {
     fn read_all(&mut self) -> Result<String, TodoErrors> {
         let file = OpenOptions::new()
             .read(true)
+            .write(true)
             .create(true)
             .open(&self.file_path)
             .map_err(|e| TodoErrors::TodoGetError(e.to_string()))?;
@@ -37,7 +38,6 @@ impl TodoDataAccess for FileDataAccess {
         let file = OpenOptions::new()
             .write(true)
             .truncate(true)
-            .create(true)
             .open(&self.file_path)
             .map_err(|e| TodoErrors::TodoSaveError(e.to_string()))?;
         let mut writer = BufWriter::new(file);

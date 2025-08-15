@@ -41,7 +41,15 @@ impl<D: TodoDataAccess> TodoRepository<D> {
     }
 
     fn load_all(&mut self) -> Result<Vec<Todo>, TodoErrors> {
-        let input = self.data_access.read_all()?;
+        let input_result = self.data_access.read_all();
+        let input = match input_result {
+            Err(e) => return Err(TodoErrors::TodoGetError(String::from(e.error_message()))),
+            Ok(input) => input,
+        };
+
+        if input.is_empty() {
+            return Ok(Vec::new());
+        }
 
         let todos_parse_result: Result<Vec<Todo>, Error> = from_str(&input);
         match todos_parse_result {
