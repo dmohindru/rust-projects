@@ -6,6 +6,7 @@ use clap::Parser;
 use cli::{
     AddCommandArgs, Commands, CompleteCommandArgs, DeleteCommandArgs, OutputFormat, TodoCli,
 };
+use dirs::home_dir;
 use std::io::Stdout;
 
 use crate::cli::GetCommand;
@@ -13,7 +14,9 @@ use crate::printer::TodoPrinter;
 use crate::todo_repo::{FileDataAccess, TodoRepository};
 fn main() {
     let cli = TodoCli::parse();
-    let mut path = std::env::temp_dir();
+    let mut path = home_dir().expect("Could not find home directory");
+    path.push("tmp");
+    std::fs::create_dir_all(&path).expect("Failed to create tmp directory in home");
     path.push("todo.json");
     let file_data_access = FileDataAccess::new(path.to_str().unwrap());
     let mut todo_repo = TodoRepository::new(file_data_access);

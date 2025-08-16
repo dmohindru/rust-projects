@@ -47,18 +47,20 @@ impl TodoDataAccess for FileDataAccess {
     }
 }
 
-// TODO: Move this implementation into test config
+#[cfg(test)]
 pub struct CursorDataAccess {
     pub reader: Cursor<String>,
     pub writer: Cursor<Vec<u8>>,
 }
 
+#[cfg(test)]
 impl CursorDataAccess {
     pub fn new(reader: Cursor<String>, writer: Cursor<Vec<u8>>) -> Self {
         Self { reader, writer }
     }
 }
 
+#[cfg(test)]
 impl TodoDataAccess for CursorDataAccess {
     fn read_all(&mut self) -> Result<String, TodoErrors> {
         let mut input = String::new();
@@ -75,16 +77,19 @@ impl TodoDataAccess for CursorDataAccess {
     }
 }
 
+#[cfg(test)]
 pub struct FailingDataAccess {
     pub reader: Cursor<String>,
 }
 
+#[cfg(test)]
 impl FailingDataAccess {
     pub fn new(reader: Cursor<String>) -> Self {
         Self { reader }
     }
 }
 
+#[cfg(test)]
 impl TodoDataAccess for FailingDataAccess {
     fn read_all(&mut self) -> Result<String, TodoErrors> {
         let mut input = String::new();

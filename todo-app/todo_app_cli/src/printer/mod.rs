@@ -40,7 +40,7 @@ impl<W: Write> TodoPrinter<W> {
         // expected format
         // id done title description
         format!(
-            "{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t\t{}",
             todo.id,
             todo.completed,
             Self::first_10_chars(&todo.name),
@@ -106,7 +106,7 @@ mod tests {
         // expected format
         // id done title description
         format!(
-            "{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t\t{}",
             todo.id,
             todo.completed,
             first_10_chars(&todo.name),
