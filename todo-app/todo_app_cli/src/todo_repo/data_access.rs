@@ -11,7 +11,7 @@ pub struct FileDataAccess {
 }
 
 impl FileDataAccess {
-    pub fn new(file_path: &str) -> Self {
+    pub fn new(file_path: String) -> Self {
         Self {
             file_path: file_path.to_string(),
         }

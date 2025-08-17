@@ -21,6 +21,10 @@ impl<W: Write> TodoPrinter<W> {
     }
 
     pub fn print_list_todo(&mut self, todo_list: Vec<Todo>, format: OutputFormat) {
+        if todo_list.is_empty() {
+            writeln!(self.writer, "No Todos found").unwrap();
+            return;
+        }
         let output_str = match format {
             OutputFormat::Text => todo_list
                 .into_iter()
@@ -40,7 +44,7 @@ impl<W: Write> TodoPrinter<W> {
         // expected format
         // id done title description
         format!(
-            "{}\t{}\t{}\t\t{}",
+            "{:<8} {:<5} {:<12} {}",
             todo.id,
             todo.completed,
             Self::first_10_chars(&todo.name),
@@ -106,7 +110,7 @@ mod tests {
         // expected format
         // id done title description
         format!(
-            "{}\t{}\t{}\t\t{}",
+            "{:<8} {:<5} {:<12} {}",
             todo.id,
             todo.completed,
             first_10_chars(&todo.name),

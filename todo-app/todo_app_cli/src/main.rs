@@ -12,13 +12,22 @@ use std::io::Stdout;
 use crate::cli::GetCommand;
 use crate::printer::TodoPrinter;
 use crate::todo_repo::{FileDataAccess, TodoRepository};
+
+// TODO: Implementing reading data from piped input from other programs
+// TODO: Write integration tests
 fn main() {
     let cli = TodoCli::parse();
-    let mut path = home_dir().expect("Could not find home directory");
-    path.push("tmp");
-    std::fs::create_dir_all(&path).expect("Failed to create tmp directory in home");
-    path.push("todo.json");
-    let file_data_access = FileDataAccess::new(path.to_str().unwrap());
+    let path = match cli.file {
+        Some(file_path) => file_path,
+        None => {
+            let mut default_path = home_dir().expect("Could not find home directory");
+            default_path.push("tmp");
+            std::fs::create_dir_all(&default_path).expect("Failed to create tmp directory in home");
+            default_path.push("todo.json");
+            String::from(default_path.to_str().unwrap())
+        }
+    };
+    let file_data_access = FileDataAccess::new(path);
     let mut todo_repo = TodoRepository::new(file_data_access);
     let mut todo_printer = TodoPrinter::<Stdout>::new(std::io::stdout());
     let output_format = cli.output.unwrap_or(OutputFormat::Text);

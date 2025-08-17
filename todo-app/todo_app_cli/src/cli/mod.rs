@@ -18,6 +18,9 @@ pub struct TodoCli {
     /// Optional output <text|json> defaults to text
     #[arg(short, long)]
     pub output: Option<OutputFormat>,
+    /// Optional file argument defaults to home-dir/tmp/todo.json
+    #[arg(short, long)]
+    pub file: Option<String>,
 }
 
 #[derive(Subcommand)]
