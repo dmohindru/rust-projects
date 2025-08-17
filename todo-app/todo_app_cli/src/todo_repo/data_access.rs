@@ -1,6 +1,6 @@
 use crate::todo_repo::TodoErrors;
 use std::fs::OpenOptions;
-use std::io::{BufReader, BufWriter, Cursor, Read, Write};
+use std::io::{BufReader, BufWriter, Read, Write};
 pub trait TodoDataAccess {
     fn read_all(&mut self) -> Result<String, TodoErrors>;
     fn write_all(&mut self, data: String) -> Result<(), TodoErrors>;
@@ -47,6 +47,8 @@ impl TodoDataAccess for FileDataAccess {
     }
 }
 
+#[cfg(test)]
+use std::io::Cursor;
 #[cfg(test)]
 pub struct CursorDataAccess {
     pub reader: Cursor<String>,
