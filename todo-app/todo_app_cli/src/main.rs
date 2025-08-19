@@ -3,16 +3,18 @@ mod printer;
 mod todo_repo;
 
 use clap::Parser;
-use cli::{
-    AddCommandArgs, Commands, CompleteCommandArgs, DeleteCommandArgs, OutputFormat, TodoCli,
+use todo::{
+    cli::{
+        AddCommandArgs, Commands, CompleteCommandArgs, DeleteCommandArgs, GetCommand, OutputFormat,
+        TodoCli,
+    },
+    printer::TodoPrinter,
+    todo_repo::{FileDataAccess, TodoRepository},
 };
+
 use dirs::home_dir;
 use std::io::Stdout;
 use std::process;
-
-use crate::cli::GetCommand;
-use crate::printer::TodoPrinter;
-use crate::todo_repo::{FileDataAccess, TodoRepository};
 
 enum AppResult {
     // Exit code 0
