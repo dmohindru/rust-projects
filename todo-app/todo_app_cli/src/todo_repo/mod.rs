@@ -192,13 +192,13 @@ mod tests {
             Todo {
                 id: nanoid!(ID_LENGTH),
                 name: String::from("Second Todo"),
-                description: String::from("First Todo description"),
+                description: String::from("Second Todo description"),
                 completed: false,
             },
             Todo {
                 id: nanoid!(ID_LENGTH),
                 name: String::from("Third Todo"),
-                description: String::from("First Todo description"),
+                description: String::from("Third Todo description"),
                 completed: false,
             },
         ]
