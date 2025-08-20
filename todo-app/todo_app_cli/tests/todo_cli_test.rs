@@ -1,5 +1,6 @@
 use assert_cmd::Command;
 use nanoid::nanoid;
+use predicates::str::contains;
 use serde_json::to_string_pretty;
 use std::fs::write;
 use tempfile::NamedTempFile;
@@ -38,12 +39,29 @@ fn setup() -> NamedTempFile {
 
 #[test]
 fn should_exit_with_non_zero_exit_code_for_invalid_data_file() {
-    todo!()
+    let mut cmd = Command::cargo_bin("todo").unwrap();
+    cmd.arg("--file")
+        .arg("/tmp/not-existence-file.json")
+        .arg("get all");
+
+    cmd.assert().failure();
 }
 
 #[test]
 fn get_all_should_return_all_todos_with_zero_exit_code() {
-    todo!()
+    let tempfile = setup();
+    let todos = get_todo_list();
+    let path = tempfile.path().to_str().unwrap();
+
+    let mut cmd = Command::cargo_bin("todo").unwrap();
+    cmd.arg("--file").arg(path).arg("get").arg("all");
+
+    cmd.assert()
+        .success()
+        .code(0)
+        .stdout(contains(todos[0].name.as_str()))
+        .stdout(contains(todos[1].name.as_str()))
+        .stdout(contains(todos[2].name.as_str()));
 }
 
 #[test]
