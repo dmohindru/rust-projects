@@ -148,7 +148,7 @@ fn handle_get_todo_by_name(
             AppResult::Success
         }
         Err(e) => AppResult::Error(format!(
-            "Error retrieving todo by id: {}",
+            "Error retrieving todo by name: {}",
             e.error_message()
         )),
     }

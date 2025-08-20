@@ -30,9 +30,10 @@ fn get_todo_list() -> Vec<Todo> {
         },
     ]
 }
-fn setup() -> NamedTempFile {
+
+fn setup(todo_list: &Vec<Todo>) -> NamedTempFile {
     let tempfile = NamedTempFile::new().expect("failed to create temp file");
-    let data = to_string_pretty(&get_todo_list()).unwrap();
+    let data = to_string_pretty(todo_list).unwrap();
     write(tempfile.path(), data).unwrap();
     tempfile
 }
@@ -49,8 +50,8 @@ fn should_exit_with_non_zero_exit_code_for_invalid_data_file() {
 
 #[test]
 fn get_all_should_return_all_todos_with_zero_exit_code() {
-    let tempfile = setup();
     let todos = get_todo_list();
+    let tempfile = setup(&todos);
     let path = tempfile.path().to_str().unwrap();
 
     let mut cmd = Command::cargo_bin("todo").unwrap();
@@ -66,21 +67,82 @@ fn get_all_should_return_all_todos_with_zero_exit_code() {
 
 #[test]
 fn get_id_should_return_todo_if_present_with_zero_exit_code() {
-    todo!()
+    let todos = get_todo_list();
+    let tempfile = setup(&todos);
+    let path = tempfile.path().to_str().unwrap();
+
+    let mut cmd = Command::cargo_bin("todo").unwrap();
+    cmd.arg("--file")
+        .arg(path)
+        .arg("get")
+        .arg("id")
+        .arg(todos[1].id.as_str());
+
+    cmd.assert()
+        .success()
+        .code(0)
+        .stdout(contains(todos[1].name.as_str()));
 }
 
 #[test]
 fn get_id_should_exit_with_non_zero_exit_code_when_todo_not_present() {
-    todo!()
+    let todos = get_todo_list();
+    let tempfile = setup(&todos);
+    let path = tempfile.path().to_str().unwrap();
+    let random_id = "Some-Random-Id";
+
+    let mut cmd = Command::cargo_bin("todo").unwrap();
+    cmd.arg("--file")
+        .arg(path)
+        .arg("get")
+        .arg("id")
+        .arg(random_id);
+
+    cmd.assert()
+        .failure()
+        .code(1)
+        .stderr(contains("Error retrieving todo by id"));
 }
 
 #[test]
 fn get_name_should_return_todo_if_present_with_zero_exit_code() {
-    todo!()
+    let todos = get_todo_list();
+    let tempfile = setup(&todos);
+    let path = tempfile.path().to_str().unwrap();
+
+    let mut cmd = Command::cargo_bin("todo").unwrap();
+    cmd.arg("--file")
+        .arg(path)
+        .arg("get")
+        .arg("name")
+        .arg("Todo");
+
+    cmd.assert()
+        .success()
+        .code(0)
+        .stdout(contains(todos[0].name.as_str()))
+        .stdout(contains(todos[1].name.as_str()))
+        .stdout(contains(todos[2].name.as_str()));
 }
 
 #[test]
-fn get_name_should_exit_with_non_zero_exit_code_when_todo_not_present() {}
+fn get_name_should_exit_with_non_zero_exit_code_when_todo_not_present() {
+    let todos = get_todo_list();
+    let tempfile = setup(&todos);
+    let path = tempfile.path().to_str().unwrap();
+
+    let mut cmd = Command::cargo_bin("todo").unwrap();
+    cmd.arg("--file")
+        .arg(path)
+        .arg("get")
+        .arg("name")
+        .arg("Some-Random-Name");
+
+    cmd.assert()
+        .failure()
+        .code(1)
+        .stderr(contains("Error retrieving todo by name"));
+}
 
 #[test]
 fn add_todo_should_return_new_todo_with_zero_exit_code() {
@@ -94,7 +156,21 @@ fn complete_todo_should_mark_todo_complete_with_zero_exit_code() {
 
 #[test]
 fn complete_todo_should_exit_with_non_zero_exit_code_when_todo_not_present() {
-    todo!()
+    let todos = get_todo_list();
+    let tempfile = setup(&todos);
+    let path = tempfile.path().to_str().unwrap();
+
+    let mut cmd = Command::cargo_bin("todo").unwrap();
+    cmd.arg("--file")
+        .arg(path)
+        .arg("complete")
+        .arg("--id")
+        .arg("Some-Random-Id");
+
+    cmd.assert()
+        .failure()
+        .code(1)
+        .stderr(contains("Unable to mark todo completed"));
 }
 
 #[test]
@@ -104,5 +180,19 @@ fn delete_todo_should_delete_todo_with_zero_exit_code() {
 
 #[test]
 fn delete_todo_should_exit_with_non_zero_exit_code_when_todo_not_present() {
-    todo!()
+    let todos = get_todo_list();
+    let tempfile = setup(&todos);
+    let path = tempfile.path().to_str().unwrap();
+
+    let mut cmd = Command::cargo_bin("todo").unwrap();
+    cmd.arg("--file")
+        .arg(path)
+        .arg("delete")
+        .arg("--id")
+        .arg("Some-Random-Id");
+
+    cmd.assert()
+        .failure()
+        .code(1)
+        .stderr(contains("Unable to delete todo"));
 }
