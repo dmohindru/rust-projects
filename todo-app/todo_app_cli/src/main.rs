@@ -1,7 +1,3 @@
-mod cli;
-mod printer;
-mod todo_repo;
-
 use clap::Parser;
 use todo::{
     cli::{
@@ -35,8 +31,6 @@ impl AppResult {
     }
 }
 
-// TODO: Implementing reading data from piped input from other programs
-// TODO: Write integration tests
 fn main() {
     let cli = TodoCli::parse();
     let path = match cli.file {
