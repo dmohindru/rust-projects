@@ -20,6 +20,16 @@ This roadmap follows a hands-on approach to learning Rust, moving from reading a
 
 ---
 
+# Actual projects
+
+## [Project 1: Command-Line TODO Manager](./todo-app/README.md)
+
+**Description:** A command-line application to manage your todos
+
+---
+
+# Expected Project sequence
+
 ## Project 1: Command-Line Task Manager with SQLite
 
 **Core Concepts:** Basic syntax, error handling, SQLite integration
