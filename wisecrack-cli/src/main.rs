@@ -1,22 +1,41 @@
 use clap::Parser;
-use wisecrack::cli::{OutputFormat, WiseCrackCli};
+use std::io::Stdout;
+use std::process;
+use wisecrack::cli::WiseCrackCli;
+use wisecrack::data::{Data, fetch_dad_jokes, fetch_quote};
+use wisecrack::printer::{AppPrinter, PrinterData};
+
+enum AppResult {
+    // Exit code 0
+    Success,
+    //Exit code 1, with Error
+    Error(String),
+}
+
+impl AppResult {
+    pub fn exit(self) -> ! {
+        match self {
+            AppResult::Success => process::exit(0),
+            AppResult::Error(msg) => {
+                eprintln!("{}", msg);
+                process::exit(1)
+            }
+        }
+    }
+}
 fn main() {
     let cli = WiseCrackCli::parse();
 
-    let config_path = match cli.config {
-        Some(config_file_path) => config_file_path,
-        None => String::from("Using default file path"),
+    let data = if cli.quote {
+        fetch_dad_jokes(cli.config)
+    } else {
+        fetch_quote(cli.config)
     };
-    let output_format = match cli.output {
-        Some(output_format) => output_format,
-        None => OutputFormat::Text,
-    };
-    let format = match output_format {
-        OutputFormat::Json => "json",
-        OutputFormat::Text => "text",
-    };
-    println!("Quote: {}", cli.quote);
-    println!("Joke: {}", cli.joke);
-    println!("config_path: {}", config_path);
-    println!("output_format: {}", format);
+    let mut app_printer = AppPrinter::<Stdout>::new(std::io::stdout());
+    let app_result = handle_data(data, &mut app_printer);
+    app_result.exit();
+}
+
+fn handle_data(data: Data, app_printer: &mut AppPrinter<Stdout>) -> AppResult {
+    todo!()
 }
