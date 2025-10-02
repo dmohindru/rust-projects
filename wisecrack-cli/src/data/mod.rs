@@ -16,10 +16,10 @@ struct Quotes {
 }
 
 pub struct Data {
-    data: Option<String>,
-    time: DateTime<Utc>,
-    error_message: Option<String>,
-    response_code: u16,
+    pub data: Option<String>,
+    pub time: DateTime<Utc>,
+    pub error_message: Option<String>,
+    pub response_code: u16,
 }
 
 impl Data {

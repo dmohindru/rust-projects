@@ -26,11 +26,11 @@ impl AppResult {
 fn main() {
     let cli = WiseCrackCli::parse();
 
-    let data = if cli.quote {
-        fetch_dad_jokes(cli.config)
-    } else {
-        fetch_quote(cli.config)
-    };
+    // let data = if cli.quote {
+    //     fetch_dad_jokes(cli.config)
+    // } else {
+    //     fetch_quote(cli.config)
+    // };
     let mut app_printer = AppPrinter::<Stdout>::new(std::io::stdout());
     let app_result = handle_data(data, &mut app_printer);
     app_result.exit();
