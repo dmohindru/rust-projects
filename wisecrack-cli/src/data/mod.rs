@@ -15,6 +15,7 @@ struct Quotes {
     q: String,
 }
 
+#[derive(Clone)]
 pub struct Data {
     pub data: Option<String>,
     pub time: DateTime<Utc>,
@@ -38,6 +39,7 @@ impl Data {
     }
 }
 
+#[cfg(test)]
 impl fmt::Display for Data {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Time: {}", self.time)?;

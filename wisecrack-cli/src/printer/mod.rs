@@ -1,13 +1,9 @@
-use std::io::Write;
-
 use crate::cli::OutputFormat;
 use crate::data::Data;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use serde_json::to_string_pretty;
-pub struct AppPrinter<W: Write> {
-    writer: W,
-}
+use std::io::Write;
 
 #[derive(Serialize)]
 struct PrinterData {
@@ -16,14 +12,8 @@ struct PrinterData {
     response_code: u16,
 }
 
-impl PrinterData {
-    fn new(message: String, time: DateTime<Utc>, response_code: u16) -> Self {
-        PrinterData {
-            message,
-            time,
-            response_code,
-        }
-    }
+pub struct AppPrinter<W: Write> {
+    writer: W,
 }
 
 impl<W: Write> AppPrinter<W> {
@@ -55,6 +45,11 @@ impl<W: Write> AppPrinter<W> {
             }
         }
     }
+
+    #[cfg(test)]
+    pub fn into_writer(self) -> W {
+        self.writer
+    }
 }
 
 #[cfg(test)]
@@ -62,20 +57,98 @@ mod tests {
     use super::*;
     use std::io::Cursor;
 
-    fn setup() -> AppPrinter<Cursor<u8>> {
+    fn setup() -> AppPrinter<Cursor<Vec<u8>>> {
         let cursor = Cursor::new(Vec::<u8>::new());
-        // AppPrinter::new(cursor)
+        AppPrinter::new(cursor)
     }
 
     #[test]
-    fn should_print_error_message_in_json_format() {}
+    fn should_print_error_message_in_json_format() {
+        let mut app_printer = setup();
+        let time_now = Utc::now();
+        let test_error_message = String::from("Some Error Message");
+        let data = Data {
+            data: None,
+            time: time_now.clone(),
+            error_message: Some(String::from(test_error_message.clone())),
+            response_code: 500,
+        };
+        app_printer.print_data(data.clone(), OutputFormat::Json);
+        let printer_data = PrinterData {
+            message: test_error_message.clone(),
+            time: time_now.clone(),
+            response_code: data.response_code,
+        };
+
+        // Convert written data back to string
+        let output_bytes = app_printer.into_writer().into_inner();
+        let output_str = String::from_utf8(output_bytes).unwrap();
+        let expected_output_str = format!("{}\n", to_string_pretty(&printer_data).unwrap());
+        assert_eq!(expected_output_str, output_str);
+    }
 
     #[test]
-    fn should_print_error_message_in_text_format() {}
+    fn should_print_error_message_in_text_format() {
+        let mut app_printer = setup();
+        let time_now = Utc::now();
+        let test_error_message = String::from("Some Error Message");
+        let data = Data {
+            data: None,
+            time: time_now.clone(),
+            error_message: Some(String::from(test_error_message.clone())),
+            response_code: 500,
+        };
+        app_printer.print_data(data.clone(), OutputFormat::Text);
+
+        // Convert written data back to string
+        let output_bytes = app_printer.into_writer().into_inner();
+        let output_str = String::from_utf8(output_bytes).unwrap();
+        let expected_output_str = format!("{}\n", data.error_message.unwrap());
+        assert_eq!(expected_output_str, output_str);
+    }
 
     #[test]
-    fn should_message_in_json_format() {}
+    fn should_message_in_json_format() {
+        let mut app_printer = setup();
+        let time_now = Utc::now();
+        let message = String::from("Some Data Message");
+        let data = Data {
+            data: Some(String::from(message.clone())),
+            time: time_now.clone(),
+            error_message: None,
+            response_code: 201,
+        };
+        app_printer.print_data(data.clone(), OutputFormat::Json);
+        let printer_data = PrinterData {
+            message: message.clone(),
+            time: time_now.clone(),
+            response_code: data.response_code,
+        };
+
+        // Convert written data back to string
+        let output_bytes = app_printer.into_writer().into_inner();
+        let output_str = String::from_utf8(output_bytes).unwrap();
+        let expected_output_str = format!("{}\n", to_string_pretty(&printer_data).unwrap());
+        assert_eq!(expected_output_str, output_str);
+    }
 
     #[test]
-    fn should_message_in_text_format() {}
+    fn should_message_in_text_format() {
+        let mut app_printer = setup();
+        let time_now = Utc::now();
+        let message = String::from("Some Data Message");
+        let data = Data {
+            data: Some(String::from(message.clone())),
+            time: time_now.clone(),
+            error_message: None,
+            response_code: 201,
+        };
+        app_printer.print_data(data.clone(), OutputFormat::Text);
+
+        // Convert written data back to string
+        let output_bytes = app_printer.into_writer().into_inner();
+        let output_str = String::from_utf8(output_bytes).unwrap();
+        let expected_output_str = format!("{}\n", data.data.unwrap());
+        assert_eq!(expected_output_str, output_str);
+    }
 }

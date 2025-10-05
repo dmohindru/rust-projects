@@ -3,7 +3,7 @@ use std::io::Stdout;
 use std::process;
 use wisecrack::cli::WiseCrackCli;
 use wisecrack::data::{Data, fetch_dad_jokes, fetch_quote};
-use wisecrack::printer::{AppPrinter, PrinterData};
+// use wisecrack::printer::{AppPrinter, PrinterData};
 
 enum AppResult {
     // Exit code 0
@@ -31,9 +31,9 @@ fn main() {
     // } else {
     //     fetch_quote(cli.config)
     // };
-    let mut app_printer = AppPrinter::<Stdout>::new(std::io::stdout());
-    let app_result = handle_data(data, &mut app_printer);
-    app_result.exit();
+    // let mut app_printer = AppPrinter::<Stdout>::new(std::io::stdout());
+    // let app_result = handle_data(data, &mut app_printer);
+    // app_result.exit();
 }
 
 fn handle_data(data: Data, app_printer: &mut AppPrinter<Stdout>) -> AppResult {
