@@ -17,9 +17,6 @@ pub struct WiseCrackCli {
     /// Optional output <text|json> defaults to text
     #[arg(short, long)]
     pub output: Option<OutputFormat>,
-    /// Optional config file
-    #[arg(short, long)]
-    pub config: Option<String>,
 }
 
 #[derive(ValueEnum, Clone, Debug)]

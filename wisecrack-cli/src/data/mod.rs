@@ -1,5 +1,3 @@
-use core::fmt;
-
 use chrono::{DateTime, Utc};
 use reqwest::{blocking::Client, header::ACCEPT};
 use serde::Deserialize;
@@ -36,23 +34,6 @@ impl Data {
             error_message,
             response_code,
         }
-    }
-}
-
-#[cfg(test)]
-impl fmt::Display for Data {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Time: {}", self.time)?;
-        writeln!(f, "Response Code: {}", self.response_code)?;
-        match &self.data {
-            Some(d) => writeln!(f, "Data: {}", d)?,
-            None => writeln!(f, "Data: <none>")?,
-        }
-        match &self.error_message {
-            Some(e) => writeln!(f, "Error: {}", e)?,
-            None => writeln!(f, "Error: <none>")?,
-        }
-        Ok(())
     }
 }
 
@@ -133,6 +114,23 @@ pub fn fetch_quote() -> Data {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::fmt;
+
+    impl fmt::Display for Data {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            writeln!(f, "Time: {}", self.time)?;
+            writeln!(f, "Response Code: {}", self.response_code)?;
+            match &self.data {
+                Some(d) => writeln!(f, "Data: {}", d)?,
+                None => writeln!(f, "Data: <none>")?,
+            }
+            match &self.error_message {
+                Some(e) => writeln!(f, "Error: {}", e)?,
+                None => writeln!(f, "Error: <none>")?,
+            }
+            Ok(())
+        }
+    }
     #[test]
     fn test_dad_joke_api() {
         let data = fetch_dad_jokes();
