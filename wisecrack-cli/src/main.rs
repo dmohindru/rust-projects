@@ -24,9 +24,9 @@ fn main() {
     let cli = WiseCrackCli::parse();
 
     let data = if cli.quote {
-        fetch_quote()
+        fetch_quote("https://zenquotes.io/api/random")
     } else {
-        fetch_dad_jokes()
+        fetch_dad_jokes("https://icanhazdadjoke.com")
     };
     let mut app_printer = AppPrinter::<Stdout>::new(std::io::stdout());
     let app_result = handle_data(data, &mut app_printer, cli.output);

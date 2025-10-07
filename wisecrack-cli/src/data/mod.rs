@@ -37,10 +37,14 @@ impl Data {
     }
 }
 
-pub fn fetch_dad_jokes() -> Data {
+pub fn fetch_dad_jokes(base_url: &str) -> Data {
     let client = Client::new();
-    let url = "https://icanhazdadjoke.com";
-    let response = match client.get(url).header(ACCEPT, "application/json").send() {
+    // let url = "https://icanhazdadjoke.com";
+    let response = match client
+        .get(base_url)
+        .header(ACCEPT, "application/json")
+        .send()
+    {
         Ok(res) => res,
         Err(e) => {
             return Data {
@@ -73,10 +77,10 @@ pub fn fetch_dad_jokes() -> Data {
     }
 }
 
-pub fn fetch_quote() -> Data {
+pub fn fetch_quote(base_url: &str) -> Data {
     let client = Client::new();
-    let url = "https://zenquotes.io/api/random";
-    let response = match client.get(url).send() {
+    //let url = "https://zenquotes.io/api/random";
+    let response = match client.get(base_url).send() {
         Ok(res) => res,
         Err(e) => {
             return Data {
@@ -133,13 +137,29 @@ mod tests {
     }
     #[test]
     fn test_dad_joke_api() {
-        let data = fetch_dad_jokes();
-        println!("{}", data);
+        let expected_joke = "Mocked joke for testing.";
+        let mut server = mockito::Server::new();
+        let url = server.url();
+        let mock = server
+            .mock("GET", "/")
+            .match_header("Accept", "application/json")
+            .with_status(201)
+            .with_body(format!(
+                "{{\"id\":\"Dt4hNJJmykb\",\"joke\":\"{}\",\"status\":201}}",
+                expected_joke
+            ))
+            .create();
+
+        let data = fetch_dad_jokes(url.as_str());
+        mock.assert();
+        assert_eq!(data.response_code, 201);
+        assert_eq!(data.data.as_deref(), Some(expected_joke));
+        assert!(data.error_message.is_none());
     }
 
     #[test]
     fn test_quotes_api() {
-        let data = fetch_quote();
+        let data = fetch_quote("https://zenquotes.io/api/random");
         println!("{}", data);
     }
 }

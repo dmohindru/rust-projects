@@ -24,16 +24,4 @@ Default: text
 -o, --output text|json
 ```
 
-### Config file option (optional)
-
-```sh
--c, --config <file-path>
-```
-
-config options precedence
-
-1. command line options are present
-2. default location HOME/.wisecrack
-3. env vars
-
 Note: only one option is allowed out of jokes/quotes
