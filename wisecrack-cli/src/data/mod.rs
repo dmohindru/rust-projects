@@ -57,6 +57,17 @@ pub fn fetch_dad_jokes(base_url: &str) -> Data {
         }
     };
 
+    if !response.status().is_success() {
+        let code = response.status().as_u16();
+        let body = response.text().unwrap_or_else(|_| "Unknown error".into());
+        return Data {
+            data: None,
+            time: Utc::now(),
+            error_message: Some(format!("HTTP error {}: {}", code, body)),
+            response_code: code,
+        };
+    }
+
     let joke: DadJoke = match response.json() {
         Ok(joke) => joke,
         Err(e) => {
@@ -92,6 +103,16 @@ pub fn fetch_quote(base_url: &str) -> Data {
             };
         }
     };
+    if !response.status().is_success() {
+        let code = response.status().as_u16();
+        let body = response.text().unwrap_or_else(|_| "Unknown error".into());
+        return Data {
+            data: None,
+            time: Utc::now(),
+            error_message: Some(format!("HTTP error {}: {}", code, body)),
+            response_code: code,
+        };
+    }
     let response_status = response.status().as_u16();
 
     let quotes: Vec<Quotes> = match response.json() {
@@ -136,7 +157,7 @@ mod tests {
         }
     }
     #[test]
-    fn test_dad_joke_api() {
+    fn should_return_dad_joke_with_success() {
         let expected_joke = "Mocked joke for testing.";
         let mut server = mockito::Server::new();
         let url = server.url();
@@ -155,6 +176,36 @@ mod tests {
         assert_eq!(data.response_code, 201);
         assert_eq!(data.data.as_deref(), Some(expected_joke));
         assert!(data.error_message.is_none());
+    }
+
+    #[test]
+    fn should_return_error_from_dad_joke_api() {
+        let error_body = r#"{"message": "Internal Server Error"}"#;
+        let mut server = mockito::Server::new();
+        let url = server.url();
+
+        let mock = server
+            .mock("GET", "/")
+            .match_header("Accept", "application/json")
+            .with_status(500)
+            .with_body(error_body)
+            .create();
+
+        let data = fetch_dad_jokes(url.as_str());
+        mock.assert();
+        assert_eq!(data.response_code, 500, "Expected HTTP 500 status code");
+        assert!(data.data.is_none(), "Expected no data for failed API call");
+        assert!(
+            data.error_message.is_some(),
+            "Expected an error message for failed API call"
+        );
+
+        if let Some(err) = &data.error_message {
+            assert!(
+                err.contains("500") || err.contains("Internal Server Error"),
+                "Error message should mention failure reason"
+            );
+        }
     }
 
     #[test]
