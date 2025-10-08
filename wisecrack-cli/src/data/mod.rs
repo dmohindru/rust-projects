@@ -139,23 +139,7 @@ pub fn fetch_quote(base_url: &str) -> Data {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::fmt;
 
-    impl fmt::Display for Data {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            writeln!(f, "Time: {}", self.time)?;
-            writeln!(f, "Response Code: {}", self.response_code)?;
-            match &self.data {
-                Some(d) => writeln!(f, "Data: {}", d)?,
-                None => writeln!(f, "Data: <none>")?,
-            }
-            match &self.error_message {
-                Some(e) => writeln!(f, "Error: {}", e)?,
-                None => writeln!(f, "Error: <none>")?,
-            }
-            Ok(())
-        }
-    }
     #[test]
     fn should_return_dad_joke_with_success() {
         let expected_joke = "Mocked joke for testing.";
@@ -209,8 +193,52 @@ mod tests {
     }
 
     #[test]
-    fn test_quotes_api() {
-        let data = fetch_quote("https://zenquotes.io/api/random");
-        println!("{}", data);
+    fn should_return_quotes_with_success() {
+        let expected_quote = "Mocked quote for testing.";
+        let mut server = mockito::Server::new();
+        let url = server.url();
+        let mock = server
+            .mock("GET", "/random")
+            .with_status(200)
+            .with_body(format!(
+                "[{{\"a\":\"Some Author\",\"q\":\"{}\",\"h\":\"Some more text\"}}]",
+                expected_quote
+            ))
+            .create();
+
+        let data = fetch_quote(format!("{}/random", url.as_str()).as_str());
+        mock.assert();
+        assert_eq!(data.response_code, 200);
+        assert_eq!(data.data.as_deref(), Some(expected_quote));
+        assert!(data.error_message.is_none());
+    }
+
+    #[test]
+    fn should_return_error_from_quotes_api() {
+        let error_body = r#"{"message": "Internal Server Error"}"#;
+        let mut server = mockito::Server::new();
+        let url = server.url();
+
+        let mock = server
+            .mock("GET", "/random")
+            .with_status(500)
+            .with_body(error_body)
+            .create();
+
+        let data = fetch_quote(format!("{}/random", url.as_str()).as_str());
+        mock.assert();
+        assert_eq!(data.response_code, 500, "Expected HTTP 500 status code");
+        assert!(data.data.is_none(), "Expected no data for failed API call");
+        assert!(
+            data.error_message.is_some(),
+            "Expected an error message for failed API call"
+        );
+
+        if let Some(err) = &data.error_message {
+            assert!(
+                err.contains("500") || err.contains("Internal Server Error"),
+                "Error message should mention failure reason"
+            );
+        }
     }
 }
