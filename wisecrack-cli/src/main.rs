@@ -22,13 +22,13 @@ impl AppResult {
 }
 fn main() {
     let cli = WiseCrackCli::parse();
-    let dad_joke_url = get_api_url("WISECRACK_DAD_JOKE_API", "https://zenquotes.io/api/random");
-    let quote_url = get_api_url("WISECRACK_QUOTES_API", "https://icanhazdadjoke.com");
+    let dad_joke_url = get_api_url("WISECRACK_DAD_JOKE_API", "https://icanhazdadjoke.com");
+    let quote_url = get_api_url("WISECRACK_QUOTES_API", "https://zenquotes.io/api/random");
 
     let data = if cli.quote {
-        fetch_quote(&dad_joke_url)
+        fetch_quote(&quote_url)
     } else {
-        fetch_dad_jokes(&quote_url)
+        fetch_dad_jokes(&dad_joke_url)
     };
     let mut app_printer = AppPrinter::<Stdout>::new(std::io::stdout());
     let app_result = handle_data(data, &mut app_printer, cli.output);
