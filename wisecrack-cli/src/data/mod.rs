@@ -39,7 +39,6 @@ impl Data {
 
 pub fn fetch_dad_jokes(base_url: &str) -> Data {
     let client = Client::new();
-    // let url = "https://icanhazdadjoke.com";
     let response = match client
         .get(base_url)
         .header(ACCEPT, "application/json")
@@ -90,7 +89,6 @@ pub fn fetch_dad_jokes(base_url: &str) -> Data {
 
 pub fn fetch_quote(base_url: &str) -> Data {
     let client = Client::new();
-    //let url = "https://zenquotes.io/api/random";
     let response = match client.get(base_url).send() {
         Ok(res) => res,
         Err(e) => {
