@@ -30,4 +30,8 @@ This roadmap follows a hands-on approach to learning Rust, moving from reading a
 
 **Description:** A command-line application to fetch daily dad jokes and motivational quotes of the day
 
+## [Project 3: Feature demo](./wisecrack-cli/README.md)
+
+**Description:** A simple project to test features for a library
+
 ---
