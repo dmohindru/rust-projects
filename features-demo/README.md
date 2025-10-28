@@ -12,7 +12,7 @@ This folder contains a set of projects to test
 
 This library would have four features
 
-- add: would perform add operation on inputs
+- sum: would perform add operation on inputs
 - sub: would perform subtract operation on inputs
 - div: would perform division operation on inputs
 - mul: would perform multiplication operation on inputs
@@ -20,26 +20,26 @@ This library would have four features
 
 ### [CLI application one](./simple-ops/)
 
-A cli application called simple-ops to takes inputs on and ops on command line. This application would only have a subset of features provided by maths ops library. Will only provide add and sub operations. This library will pull the maths library dependency from github.
+A cli application called simple-ops to takes input operands and ops on a command line. This application would only have a subset of features provided by maths ops library. Will only provide add and sub operations. Math Ops library will be pulled from github.
 
 Sample application interaction
 
 ```shell
 # addition operation
-simple-ops -op1 <first_operand> -op1 <second_operant> --add
+simple-ops -op1 <first_operand> -op1 <second_operant> --sum
 # subtraction operation
 simple-ops -op1 <first_operand> -op1 <second_operant> --sub
 ```
 
 ### [CLI application two](./full-ops/)
 
-A cli application called full-ops to takes inputs on and ops on command line. This application would only all the features provided by maths ops library. This library will pull the maths library dependency from github.
+A cli application called full-ops to takes input operands and ops on a command line. This application will have all the features provided by maths ops library. Math Ops library will be pulled from github.
 
 Sample application interaction
 
 ```shell
 # addition operation
-full-ops -op1 <first_operand> -op1 <second_operant> --add
+full-ops -op1 <first_operand> -op1 <second_operant> --sum
 # subtraction operation
 full-ops -op1 <first_operand> -op1 <second_operant> --sub
 # multiplication operation
