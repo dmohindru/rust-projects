@@ -8,7 +8,7 @@ This folder contains a set of projects to test
 
 ## Application
 
-### Maths operations library
+### [Maths operations library](./math-ops/)
 
 This library would have four features
 
@@ -18,7 +18,7 @@ This library would have four features
 - mul: would perform multiplication operation on inputs
 - noop: (default feature) would not perform any operation on inputs
 
-### CLI application one
+### [CLI application one](./simple-ops/)
 
 A cli application called simple-ops to takes inputs on and ops on command line. This application would only have a subset of features provided by maths ops library. Will only provide add and sub operations. This library will pull the maths library dependency from github.
 
@@ -31,7 +31,7 @@ simple-ops -op1 <first_operand> -op1 <second_operant> --add
 simple-ops -op1 <first_operand> -op1 <second_operant> --sub
 ```
 
-### CLI application two
+### [CLI application two](./full-ops/)
 
 A cli application called full-ops to takes inputs on and ops on command line. This application would only all the features provided by maths ops library. This library will pull the maths library dependency from github.
 
