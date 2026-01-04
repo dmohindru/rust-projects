@@ -40,7 +40,10 @@ impl Glyph {
 
 pub fn glyph_animation_frames(glyphs: Vec<Glyph>, mode: AnimationMode) -> Vec<u8> {
     validate_glyph_list(&glyphs);
-    todo!()
+    match mode {
+        AnimationMode::Next => build_glyph_next_animation_frames(&glyphs),
+        AnimationMode::Scroll => todo!(),
+    }
 }
 
 fn validate_glyph_list(glyphs: &Vec<Glyph>) -> bool {
@@ -48,6 +51,10 @@ fn validate_glyph_list(glyphs: &Vec<Glyph>) -> bool {
     glyphs
         .iter()
         .all(|glyph| glyph.height == first_glyph.height)
+}
+
+fn build_glyph_next_animation_frames(glyphs: &Vec<Glyph>) -> Vec<u8> {
+    glyphs.iter().flat_map(|g| g.bitmap.clone()).collect()
 }
 
 #[cfg(test)]
@@ -68,5 +75,18 @@ mod tests {
         assert_eq!(glyph.width(), 3);
         assert_eq!(glyph.height(), 3);
         assert_eq!(glyph.bitmap(), &bitmap);
+    }
+
+    #[test]
+    fn should_return_frame_data_for_next_animation_mode() {
+        let glyph1 = Glyph::new(3, vec![0x01, 0x02, 0x03]).unwrap();
+        let glyph2 = Glyph::new(3, vec![0x04, 0x05, 0x06]).unwrap();
+        let glyph3 = Glyph::new(3, vec![0x07, 0x08, 0x09]).unwrap();
+        let glyphs = vec![glyph1, glyph2, glyph3];
+        let frame_data = glyph_animation_frames(glyphs, AnimationMode::Next);
+        assert_eq!(
+            frame_data,
+            vec!(0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09)
+        );
     }
 }
