@@ -1,24 +1,31 @@
-/*
-Cli to take options
-// Character for which bitmap need to be generated
--c, --char <Character>
-// String for which bitmap need to be generated, mode MUST be specified
--s, --string <String> // String for which bitmap need to be generated
--m, --mode <scroll/next>
-// print info about the bin file
--i, --info
-// Mandatory options
-// Specify square grid size
--g, --grid-size <number> eg 5, 8
-// File to write output data if -c or (-s and -m) options are specified
-// File to read data and print info if -i options are specified
--f, --file <filename>
+use clap::Parser;
 
-Permitted combination of options
--c, -g, -f
--s, -m, -g, -f
--i, -g, -f
-*/
+use crate::cli::GlyphCli;
+mod cli;
 fn main() {
-    println!("Hello, world!");
+    let cli = GlyphCli::parse();
+    match cli.char {
+        Some(char) => println!(
+            "Generating for char {}, grid-size {}, file {}",
+            char, cli.grid_size, cli.file
+        ),
+        None => println!("--char option missing"),
+    }
+
+    match cli.string {
+        Some(str) => println!(
+            "Generating for char {}, grid-size {}, file {}",
+            str, cli.grid_size, cli.file
+        ),
+        None => println!("--string option missing"),
+    }
+
+    if cli.info {
+        println!(
+            "Generating for info {}, grid-size {}, file {}",
+            cli.info, cli.grid_size, cli.file
+        )
+    } else {
+        println!("--info option missing")
+    }
 }
