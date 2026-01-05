@@ -1,31 +1,39 @@
+mod bitmap;
+mod cli;
+use crate::{
+    bitmap::{generate_char_bitmap, generate_string_bitmap},
+    cli::GlyphCli,
+};
 use clap::Parser;
 
-use crate::cli::GlyphCli;
-mod cli;
 fn main() {
     let cli = GlyphCli::parse();
-    match cli.char {
-        Some(char) => println!(
-            "Generating for char {}, grid-size {}, file {}",
-            char, cli.grid_size, cli.file
-        ),
-        None => println!("--char option missing"),
+    /* Steps involved
+    1. Read data file for bitmaps
+    2. Create GlyphCli from glyph-lib
+    3. Generate a bitmap vector
+    4. Write to the data file
+    */
+
+    if let Some(ch) = cli.char {
+        let bitmap = generate_char_bitmap(cli.grid_size, ch);
+        write_data_file(&cli.file, bitmap);
     }
 
-    match cli.string {
-        Some(str) => println!(
-            "Generating for char {}, grid-size {}, file {}",
-            str, cli.grid_size, cli.file
-        ),
-        None => println!("--string option missing"),
+    if let Some(str) = cli.string {
+        let bitmap = generate_string_bitmap(cli.grid_size, str, cli.mode.unwrap());
+        write_data_file(&cli.file, bitmap);
     }
 
     if cli.info {
-        println!(
-            "Generating for info {}, grid-size {}, file {}",
-            cli.info, cli.grid_size, cli.file
-        )
-    } else {
-        println!("--info option missing")
+        verify_data_file(&cli.file, cli.grid_size);
     }
+}
+
+fn write_data_file(file_name: &String, data: Vec<u8>) {
+    todo!()
+}
+
+fn verify_data_file(file_name: &String, grid_size: u8) {
+    todo!()
 }
