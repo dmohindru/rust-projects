@@ -1,4 +1,5 @@
 use clap::{Parser, ValueEnum};
+use glyph_lib::AnimationMode;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -18,7 +19,7 @@ pub struct GlyphCli {
 
     /// Mode to render strings: `scroll` or `next`.
     #[arg(short, long, value_enum)]
-    pub mode: Option<AnimationMode>,
+    pub mode: Option<CliAnimationMode>,
 
     /// Print information about an existing glyph binary file (requires `--grid-size` and `--file`).
     #[arg(short, long, group = "action", requires_all = ["grid_size", "file"])]
@@ -34,7 +35,20 @@ pub struct GlyphCli {
 }
 
 #[derive(ValueEnum, Clone)]
-pub enum AnimationMode {
+pub enum CliAnimationMode {
     Next,
     Scroll,
 }
+
+impl From<CliAnimationMode> for AnimationMode {
+    fn from(value: CliAnimationMode) -> Self {
+        match value {
+            CliAnimationMode::Next => AnimationMode::Next,
+            CliAnimationMode::Scroll => AnimationMode::Scroll,
+        }
+    }
+}
+
+// if let Some(mode) = cli.mode.map(Into::into) {
+//     run_string_generation(mode);
+// }
