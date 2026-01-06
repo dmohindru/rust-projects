@@ -1,7 +1,7 @@
 mod bitmap;
 mod cli;
 use crate::{
-    bitmap::{generate_char_bitmap, generate_string_bitmap},
+    // bitmap::{generate_char_bitmap, generate_string_bitmap},
     cli::GlyphCli,
 };
 use clap::Parser;
@@ -16,13 +16,13 @@ fn main() {
     */
 
     if let Some(ch) = cli.char {
-        let bitmap = generate_char_bitmap(cli.grid_size, ch);
-        write_data_file(&cli.file, bitmap);
+        // let bitmap = generate_char_bitmap(cli.grid_size, ch);
+        // write_data_file(&cli.file, bitmap);
     }
 
     if let Some(str) = cli.string {
-        let bitmap = generate_string_bitmap(cli.grid_size, str, cli.mode.unwrap());
-        write_data_file(&cli.file, bitmap);
+        // let bitmap = generate_string_bitmap(cli.grid_size, str, cli.mode.unwrap());
+        // write_data_file(&cli.file, bitmap);
     }
 
     if cli.info {
