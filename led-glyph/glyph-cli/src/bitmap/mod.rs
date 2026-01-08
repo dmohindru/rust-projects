@@ -33,13 +33,9 @@ impl<D: DataAccess> BitmapRepository<D> {
     }
 
     pub fn generate_char_bitmap(&mut self, grid_size: u8, character: char) -> Result<(), String> {
-        let bitmap = self.get_glyph_bitmap().unwrap();
-        let glyph_binary_data = Self::get_glyph_bitmap_binary_data(&bitmap, character).unwrap();
-        let glyph_result = Glyph::new(grid_size, glyph_binary_data);
-        let glyph = match glyph_result {
-            Ok(glyph) => glyph,
-            Err(error) => return Err(error.to_string()),
-        };
+        let bitmap = self.get_glyph_bitmap()?;
+        let glyph_binary_data = Self::get_glyph_bitmap_binary_data(&bitmap, character)?;
+        let glyph = Glyph::new(grid_size, glyph_binary_data)?;
         let animation_data = glyph_animation_frames(vec![glyph], AnimationMode::Next);
         self.data_access.write_data_file(animation_data)
     }
@@ -104,10 +100,10 @@ impl<D: DataAccess> BitmapRepository<D> {
 
     fn binary_string_to_u8(bin_string: &String) -> Result<u8, String> {
         if bin_string.len() > 8 {
-            return Err("binary string longer than 8 bits".into());
+            return Err("Binary string longer than 8 bits".into());
         }
         u8::from_str_radix(bin_string, 2)
-            .map_err(|_| format!("invalid binary string: {bin_string}"))
+            .map_err(|_| format!("Invalid binary string: {bin_string}"))
     }
 }
 
@@ -117,7 +113,7 @@ mod tests {
     use crate::bitmap::data_access::CursorDataAccess;
 
     #[test]
-    fn should_return_u8_vector_for_valid_string_vectors() {
+    fn should_return_u8_for_valid_binary_string() {
         let bin_string = String::from("10101010");
         let bin_data =
             BitmapRepository::<CursorDataAccess>::binary_string_to_u8(&bin_string).unwrap();
@@ -126,8 +122,69 @@ mod tests {
     }
 
     #[test]
-    fn should_return_error_for_invalid_string_vectors() {}
+    fn should_return_error_for_invalid_binary_string() {
+        let bin_string = String::from("ab101010");
+        let err =
+            BitmapRepository::<CursorDataAccess>::binary_string_to_u8(&bin_string).unwrap_err();
+
+        assert_eq!(format!("Invalid binary string: {bin_string}"), err);
+    }
 
     #[test]
-    fn should_return_error_for_valid_string_vectors_but_size_greater_than_eight() {}
+    fn should_return_error_for_valid_binary_string_but_size_greater_than_eight() {
+        let bin_string = String::from("110101010");
+        let err =
+            BitmapRepository::<CursorDataAccess>::binary_string_to_u8(&bin_string).unwrap_err();
+
+        assert_eq!("Binary string longer than 8 bits", err);
+    }
+
+    #[test]
+    fn should_return_u8_vector_for_valid_binary_string_vector() {
+        let binary_str_vector = vec![
+            String::from("11111111"),
+            String::from("00000000"),
+            String::from("10101010"),
+        ];
+        let bin_data_vector =
+            BitmapRepository::<CursorDataAccess>::convert_bitmap_data(&binary_str_vector).unwrap();
+        let expected_bin_data_vector: Vec<u8> = vec![0b11111111, 0b00000000, 0b10101010];
+        assert_eq!(expected_bin_data_vector, bin_data_vector);
+    }
+
+    #[test]
+    fn should_return_error_for_invalid_binary_string_vector() {
+        let binary_str_vector = vec![
+            String::from("11111111"),
+            String::from("00000000"),
+            String::from("ab101010"),
+        ];
+        let err = BitmapRepository::<CursorDataAccess>::convert_bitmap_data(&binary_str_vector)
+            .unwrap_err();
+        assert_eq!(format!("Invalid binary string: ab101010"), err);
+    }
+
+    #[test]
+    fn should_return_error_for_valid_binary_string_vector_but_size_greater_than_eight() {
+        let binary_str_vector = vec![
+            String::from("11111111"),
+            String::from("00000000"),
+            String::from("110101010"),
+        ];
+        let err = BitmapRepository::<CursorDataAccess>::convert_bitmap_data(&binary_str_vector)
+            .unwrap_err();
+        assert_eq!("Binary string longer than 8 bits", err);
+    }
+
+    #[test]
+    fn should_return_error_when_reading_glyph_data_file_failed() {}
+
+    #[test]
+    fn should_return_error_when_char_bitmap_data_not_found_glyph_data_file() {}
+
+    #[test]
+    fn should_return_error_when_char_bitmap_data_not_aligned_with_grid_size() {}
+
+    #[test]
+    fn should_return_char_bitmap_data_as_u8_vec_from_glyph_data_file() {}
 }

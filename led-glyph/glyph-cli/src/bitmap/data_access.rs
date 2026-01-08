@@ -96,11 +96,7 @@ impl FailingDataAccess {
 #[cfg(test)]
 impl DataAccess for FailingDataAccess {
     fn read_data_file(&mut self) -> Result<String, String> {
-        let mut input = String::new();
-        self.reader
-            .read_to_string(&mut input)
-            .map_err(|e| e.to_string())?;
-        Ok(input)
+        Err(String::from(format!("Simulated read error")))
     }
     fn write_data_file(&mut self, data: Vec<u8>) -> Result<(), String> {
         Err(String::from(format!(
