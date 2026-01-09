@@ -47,10 +47,12 @@ impl<D: DataAccess> BitmapRepository<D> {
         mode: CliAnimationMode,
     ) -> Result<(), String> {
         let bitmap = self.get_glyph_bitmap().unwrap();
+        // TODO Need some improvement here fix unwrap code
         let glyph_binary_data_vec: Vec<Vec<u8>> = string
             .chars()
             .map(|c| Self::get_glyph_bitmap_binary_data(&bitmap, c).unwrap())
             .collect();
+        // TODO Need some improvement here fix unwrap code
         let glyphs: Vec<Glyph> = glyph_binary_data_vec
             .into_iter()
             .map(|g| Glyph::new(grid_size, g).unwrap())
@@ -110,13 +112,14 @@ impl<D: DataAccess> BitmapRepository<D> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bitmap::data_access::CursorDataAccess;
+    use crate::bitmap::data_access::TestDataAccess;
+    use serde_json::{error::Error, from_str, to_string_pretty};
 
     #[test]
     fn should_return_u8_for_valid_binary_string() {
         let bin_string = String::from("10101010");
         let bin_data =
-            BitmapRepository::<CursorDataAccess>::binary_string_to_u8(&bin_string).unwrap();
+            BitmapRepository::<TestDataAccess>::binary_string_to_u8(&bin_string).unwrap();
 
         assert_eq!(0b10101010, bin_data);
     }
@@ -124,8 +127,7 @@ mod tests {
     #[test]
     fn should_return_error_for_invalid_binary_string() {
         let bin_string = String::from("ab101010");
-        let err =
-            BitmapRepository::<CursorDataAccess>::binary_string_to_u8(&bin_string).unwrap_err();
+        let err = BitmapRepository::<TestDataAccess>::binary_string_to_u8(&bin_string).unwrap_err();
 
         assert_eq!(format!("Invalid binary string: {bin_string}"), err);
     }
@@ -133,8 +135,7 @@ mod tests {
     #[test]
     fn should_return_error_for_valid_binary_string_but_size_greater_than_eight() {
         let bin_string = String::from("110101010");
-        let err =
-            BitmapRepository::<CursorDataAccess>::binary_string_to_u8(&bin_string).unwrap_err();
+        let err = BitmapRepository::<TestDataAccess>::binary_string_to_u8(&bin_string).unwrap_err();
 
         assert_eq!("Binary string longer than 8 bits", err);
     }
@@ -147,7 +148,7 @@ mod tests {
             String::from("10101010"),
         ];
         let bin_data_vector =
-            BitmapRepository::<CursorDataAccess>::convert_bitmap_data(&binary_str_vector).unwrap();
+            BitmapRepository::<TestDataAccess>::convert_bitmap_data(&binary_str_vector).unwrap();
         let expected_bin_data_vector: Vec<u8> = vec![0b11111111, 0b00000000, 0b10101010];
         assert_eq!(expected_bin_data_vector, bin_data_vector);
     }
@@ -159,7 +160,7 @@ mod tests {
             String::from("00000000"),
             String::from("ab101010"),
         ];
-        let err = BitmapRepository::<CursorDataAccess>::convert_bitmap_data(&binary_str_vector)
+        let err = BitmapRepository::<TestDataAccess>::convert_bitmap_data(&binary_str_vector)
             .unwrap_err();
         assert_eq!(format!("Invalid binary string: ab101010"), err);
     }
@@ -171,20 +172,75 @@ mod tests {
             String::from("00000000"),
             String::from("110101010"),
         ];
-        let err = BitmapRepository::<CursorDataAccess>::convert_bitmap_data(&binary_str_vector)
+        let err = BitmapRepository::<TestDataAccess>::convert_bitmap_data(&binary_str_vector)
             .unwrap_err();
         assert_eq!("Binary string longer than 8 bits", err);
     }
 
     #[test]
-    fn should_return_error_when_reading_glyph_data_file_failed() {}
+    fn should_return_error_when_reading_glyph_data_file_failed() {
+        let invalid_data_format_access = TestDataAccess::success("Some Invalid data format");
+        let mut bitmap_repository =
+            BitmapRepository::<TestDataAccess>::new(invalid_data_format_access);
+
+        let bitmap_result = bitmap_repository.generate_char_bitmap(8, 'C');
+        assert!(bitmap_result.is_err());
+    }
 
     #[test]
-    fn should_return_error_when_char_bitmap_data_not_found_glyph_data_file() {}
+    fn should_return_error_when_char_bitmap_data_not_found_glyph_data_file() {
+        let error_msg = "File not found";
+        let invalid_data_format_access = TestDataAccess::read_fail(error_msg);
+        let mut bitmap_repository =
+            BitmapRepository::<TestDataAccess>::new(invalid_data_format_access);
+
+        let message = bitmap_repository.generate_char_bitmap(8, 'C').unwrap_err();
+        assert_eq!(error_msg, message);
+    }
 
     #[test]
-    fn should_return_error_when_char_bitmap_data_not_aligned_with_grid_size() {}
+    fn should_return_error_when_char_bitmap_data_not_aligned_with_grid_size() {
+        let glyph_bitmap_str = r#"
+        {
+            "meta": {
+                "name": "5x5-basic-ascii",
+                "width": 5,
+                "height": 5,
+                "bit_order": "msb_left",
+                "version": 1
+            },
+            "glyphs": {
+                "A": ["01110", "10001", "11111", "10001", "10001"],
+                "B": ["11110", "10001", "11110", "10001", "11110"]
+            }
+        }"#;
+    }
 
     #[test]
-    fn should_return_char_bitmap_data_as_u8_vec_from_glyph_data_file() {}
+    fn should_return_error_when_char_bitmap_not_found_in_glyph_data_file() {}
+
+    #[test]
+    fn should_return_char_bitmap_data_as_u8_vec_from_glyph_data_file() {
+        let glyph_bitmap_str = r#"
+        {
+            "meta": {
+                "name": "5x5-basic-ascii",
+                "width": 5,
+                "height": 5,
+                "bit_order": "msb_left",
+                "version": 1
+            },
+            "glyphs": {
+                "A": ["01110", "10001", "11111", "10001", "10001"],
+                "B": ["11110", "10001", "11110", "10001", "11110"]
+            }
+        }"#;
+
+        let success_data_access = TestDataAccess::success(glyph_bitmap_str);
+        let mut bitmap_repository =
+            BitmapRepository::<TestDataAccess>::new(success_data_access.clone());
+        bitmap_repository.generate_char_bitmap(5, 'A').unwrap();
+        let expected_written_u8_vec = vec![0b01110, 0b10001, 0b11111, 0b10001, 0b10001];
+        assert_eq!(expected_written_u8_vec, success_data_access.written_data);
+    }
 }
