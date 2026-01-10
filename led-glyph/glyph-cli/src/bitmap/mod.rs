@@ -34,7 +34,8 @@ impl<D: DataAccess> BitmapRepository<D> {
 
     pub fn generate_char_bitmap(&mut self, grid_size: u8, character: char) -> Result<(), String> {
         let bitmap = self.get_glyph_bitmap()?;
-        let glyph_binary_data = Self::get_glyph_bitmap_binary_data(&bitmap, character)?;
+        let glyph_binary_data =
+            Self::get_glyph_bitmap_binary_data(&bitmap, character.to_ascii_uppercase())?;
         let glyph = Glyph::new(grid_size, glyph_binary_data)?;
         let animation_data = glyph_animation_frames(vec![glyph], AnimationMode::Next);
         self.data_access.write_data_file(animation_data)
@@ -50,6 +51,7 @@ impl<D: DataAccess> BitmapRepository<D> {
         // TODO Need some improvement here fix unwrap code
         let glyph_binary_data_vec: Vec<Vec<u8>> = string
             .chars()
+            .map(|c| c.to_ascii_uppercase())
             .map(|c| Self::get_glyph_bitmap_binary_data(&bitmap, c).unwrap())
             .collect();
         // TODO Need some improvement here fix unwrap code
@@ -57,6 +59,20 @@ impl<D: DataAccess> BitmapRepository<D> {
             .into_iter()
             .map(|g| Glyph::new(grid_size, g).unwrap())
             .collect();
+
+        // let glyph_binary_data_vec = string
+        //     .chars()
+        //     .map(|c| c.to_ascii_uppercase())
+        //     .map(|c| {
+        //         let binary_data = Self::get_glyph_bitmap_binary_data(&bitmap, c)?;
+        //         binary_data
+        //     })
+        //     .map(|d| {
+        //         let glyph = Glyph::new(grid_size, g)?;
+        //         glyph
+        //     })
+        //     .collect();
+
         let animation_mode = match mode {
             CliAnimationMode::Next => AnimationMode::Next,
             CliAnimationMode::Scroll => AnimationMode::Scroll,
@@ -111,9 +127,28 @@ impl<D: DataAccess> BitmapRepository<D> {
 
 #[cfg(test)]
 mod tests {
+    use clap::error;
+
     use super::*;
     use crate::bitmap::data_access::TestDataAccess;
-    use serde_json::{error::Error, from_str, to_string_pretty};
+
+    fn get_valid_glyph_bitmap_str() -> String {
+        let glyph_bitmap_str = r#"
+        {
+            "meta": {
+                "name": "5x5-basic-ascii",
+                "width": 5,
+                "height": 5,
+                "bit_order": "msb_left",
+                "version": 1
+            },
+            "glyphs": {
+                "A": ["01110", "10001", "11111", "10001", "10001"],
+                "B": ["11110", "10001", "11110", "10001", "11110"]
+            }
+        }"#;
+        String::from(glyph_bitmap_str)
+    }
 
     #[test]
     fn should_return_u8_for_valid_binary_string() {
@@ -188,7 +223,7 @@ mod tests {
     }
 
     #[test]
-    fn should_return_error_when_char_bitmap_data_not_found_glyph_data_file() {
+    fn should_return_error_when_glyph_data_file_read_error_occurs() {
         let error_msg = "File not found";
         let invalid_data_format_access = TestDataAccess::read_fail(error_msg);
         let mut bitmap_repository =
@@ -210,37 +245,71 @@ mod tests {
                 "version": 1
             },
             "glyphs": {
-                "A": ["01110", "10001", "11111", "10001", "10001"],
+                "A": ["01110", "10001", "11111", "10001", "10001", "11111"],
                 "B": ["11110", "10001", "11110", "10001", "11110"]
             }
         }"#;
+        let success_data_access = TestDataAccess::success(glyph_bitmap_str);
+        let mut bitmap_repository = BitmapRepository::<TestDataAccess>::new(success_data_access);
+        let result = bitmap_repository.generate_char_bitmap(5, 'A');
+        assert!(result.is_err());
     }
 
     #[test]
-    fn should_return_error_when_char_bitmap_not_found_in_glyph_data_file() {}
+    fn should_return_error_when_char_bitmap_not_found_in_glyph_data_file() {
+        let expected_error_msg = "Bitmap not found for character C";
+        let glyph_bitmap = get_valid_glyph_bitmap_str();
+        let success_data_access = TestDataAccess::success(glyph_bitmap.as_str());
+        let mut bitmap_repository = BitmapRepository::<TestDataAccess>::new(success_data_access);
+        let error_msg = bitmap_repository.generate_char_bitmap(5, 'C').unwrap_err();
+        assert_eq!(expected_error_msg, error_msg);
+    }
 
     #[test]
     fn should_return_char_bitmap_data_as_u8_vec_from_glyph_data_file() {
-        let glyph_bitmap_str = r#"
-        {
-            "meta": {
-                "name": "5x5-basic-ascii",
-                "width": 5,
-                "height": 5,
-                "bit_order": "msb_left",
-                "version": 1
-            },
-            "glyphs": {
-                "A": ["01110", "10001", "11111", "10001", "10001"],
-                "B": ["11110", "10001", "11110", "10001", "11110"]
-            }
-        }"#;
-
-        let success_data_access = TestDataAccess::success(glyph_bitmap_str);
-        let mut bitmap_repository =
-            BitmapRepository::<TestDataAccess>::new(success_data_access.clone());
-        bitmap_repository.generate_char_bitmap(5, 'A').unwrap();
+        let glyph_bitmap = get_valid_glyph_bitmap_str();
+        let success_data_access = TestDataAccess::success(glyph_bitmap.as_str());
+        let mut bitmap_repository = BitmapRepository::<TestDataAccess>::new(success_data_access);
+        bitmap_repository.generate_char_bitmap(5, 'a').unwrap();
         let expected_written_u8_vec = vec![0b01110, 0b10001, 0b11111, 0b10001, 0b10001];
-        assert_eq!(expected_written_u8_vec, success_data_access.written_data);
+        assert_eq!(
+            expected_written_u8_vec,
+            bitmap_repository.data_access.written_data
+        );
+    }
+
+    #[test]
+    fn should_return_error_when_any_string_char_bitmap_not_found_in_glyph_data_file() {
+        let expected_error_msg = "Bitmap not found for character C";
+        let glyph_bitmap = get_valid_glyph_bitmap_str();
+        let success_data_access = TestDataAccess::success(glyph_bitmap.as_str());
+        let mut bitmap_repository = BitmapRepository::<TestDataAccess>::new(success_data_access);
+        let string_input = String::from("AbaBC");
+        let error_msg = bitmap_repository
+            .generate_string_bitmap(5, string_input, CliAnimationMode::Next)
+            .unwrap_err();
+        assert_eq!(expected_error_msg, error_msg);
+    }
+
+    #[test]
+    fn should_return_string_bitmap_data_as_u8_vec_from_glyph_data_file() {
+        let glyph_bitmap = get_valid_glyph_bitmap_str();
+        let success_data_access = TestDataAccess::success(glyph_bitmap.as_str());
+        let mut bitmap_repository = BitmapRepository::<TestDataAccess>::new(success_data_access);
+        let string_input = String::from("AbaB");
+        bitmap_repository
+            .generate_string_bitmap(5, string_input, CliAnimationMode::Next)
+            .unwrap();
+        let char_a_u8_vec: Vec<u8> = vec![0b01110, 0b10001, 0b11111, 0b10001, 0b10001];
+        let char_b_u8_vec: Vec<u8> = vec![0b11110, 0b10001, 0b11110, 0b10001, 0b11110];
+        let mut expected_written_u8_vec: Vec<u8> = Vec::new();
+        expected_written_u8_vec.extend_from_slice(&char_a_u8_vec);
+        expected_written_u8_vec.extend_from_slice(&char_b_u8_vec);
+        expected_written_u8_vec.extend_from_slice(&char_a_u8_vec);
+        expected_written_u8_vec.extend_from_slice(&char_b_u8_vec);
+        assert_eq!(
+            expected_written_u8_vec,
+            bitmap_repository.data_access.written_data
+        );
     }
 }
