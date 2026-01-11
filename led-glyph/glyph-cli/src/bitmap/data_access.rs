@@ -28,6 +28,7 @@ impl DataAccess for FileDataAccess {
             "{}/bitmap-{}X{}.json",
             base_path, self.grid_size, self.grid_size
         );
+        println!("Reading datfile: {}", &file_path);
         let file = OpenOptions::new()
             .read(true)
             .open(file_path)
@@ -41,8 +42,10 @@ impl DataAccess for FileDataAccess {
     }
 
     fn write_data_file(&mut self, data: Vec<u8>) -> Result<(), String> {
+        println!("Writing to datafile: {}", &self.out_data_file);
         let file = OpenOptions::new()
             .write(true)
+            .create(true)
             .truncate(true)
             .open(&self.out_data_file)
             .map_err(|e| e.to_string())?;
@@ -50,61 +53,6 @@ impl DataAccess for FileDataAccess {
         writer.write_all(&data).map_err(|e| e.to_string())
     }
 }
-
-// #[cfg(test)]
-// use std::io::Cursor;
-
-// #[cfg(test)]
-// pub struct CursorDataAccess {
-//     pub reader: Cursor<String>,
-//     pub writer: Cursor<Vec<u8>>,
-// }
-
-// #[cfg(test)]
-// impl CursorDataAccess {
-//     pub fn new(reader: Cursor<String>, writer: Cursor<Vec<u8>>) -> Self {
-//         Self { reader, writer }
-//     }
-// }
-
-// #[cfg(test)]
-// impl DataAccess for CursorDataAccess {
-//     fn read_data_file(&mut self) -> Result<String, String> {
-//         let mut input = String::new();
-//         self.reader
-//             .read_to_string(&mut input)
-//             .map_err(|e| e.to_string())?;
-//         Ok(input)
-//     }
-//     fn write_data_file(&mut self, data: Vec<u8>) -> Result<(), String> {
-//         self.writer.write_all(&data).map_err(|e| e.to_string())
-//     }
-// }
-
-// #[cfg(test)]
-// pub struct FailingDataAccess {
-//     pub reader: Cursor<String>,
-// }
-
-// #[cfg(test)]
-// impl FailingDataAccess {
-//     pub fn new(reader: Cursor<String>) -> Self {
-//         Self { reader }
-//     }
-// }
-
-// #[cfg(test)]
-// impl DataAccess for FailingDataAccess {
-//     fn read_data_file(&mut self) -> Result<String, String> {
-//         Err(String::from(format!("Simulated read error")))
-//     }
-//     fn write_data_file(&mut self, data: Vec<u8>) -> Result<(), String> {
-//         Err(String::from(format!(
-//             "Simulated write error for data: {:?}",
-//             data
-//         )))
-//     }
-// }
 
 #[cfg(test)]
 #[derive(Clone)]

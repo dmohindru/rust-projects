@@ -1,4 +1,4 @@
-mod data_access;
+pub mod data_access;
 
 use std::collections::HashMap;
 
@@ -48,30 +48,16 @@ impl<D: DataAccess> BitmapRepository<D> {
         mode: CliAnimationMode,
     ) -> Result<(), String> {
         let bitmap = self.get_glyph_bitmap().unwrap();
-        // TODO Need some improvement here fix unwrap code
         let glyph_binary_data_vec: Vec<Vec<u8>> = string
             .chars()
             .map(|c| c.to_ascii_uppercase())
-            .map(|c| Self::get_glyph_bitmap_binary_data(&bitmap, c).unwrap())
-            .collect();
-        // TODO Need some improvement here fix unwrap code
+            .map(|c| Self::get_glyph_bitmap_binary_data(&bitmap, c))
+            .collect::<Result<Vec<_>, _>>()?;
+
         let glyphs: Vec<Glyph> = glyph_binary_data_vec
             .into_iter()
-            .map(|g| Glyph::new(grid_size, g).unwrap())
-            .collect();
-
-        // let glyph_binary_data_vec = string
-        //     .chars()
-        //     .map(|c| c.to_ascii_uppercase())
-        //     .map(|c| {
-        //         let binary_data = Self::get_glyph_bitmap_binary_data(&bitmap, c)?;
-        //         binary_data
-        //     })
-        //     .map(|d| {
-        //         let glyph = Glyph::new(grid_size, g)?;
-        //         glyph
-        //     })
-        //     .collect();
+            .map(|g| Glyph::new(grid_size, g))
+            .collect::<Result<Vec<_>, _>>()?;
 
         let animation_mode = match mode {
             CliAnimationMode::Next => AnimationMode::Next,
@@ -127,7 +113,6 @@ impl<D: DataAccess> BitmapRepository<D> {
 
 #[cfg(test)]
 mod tests {
-    use clap::error;
 
     use super::*;
     use crate::bitmap::data_access::TestDataAccess;
@@ -213,7 +198,7 @@ mod tests {
     }
 
     #[test]
-    fn should_return_error_when_reading_glyph_data_file_failed() {
+    fn should_return_error_when_glyph_data_file_contains_invalid_format_data() {
         let invalid_data_format_access = TestDataAccess::success("Some Invalid data format");
         let mut bitmap_repository =
             BitmapRepository::<TestDataAccess>::new(invalid_data_format_access);
