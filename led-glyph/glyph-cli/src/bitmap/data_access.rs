@@ -1,5 +1,6 @@
 use std::fs::OpenOptions;
 use std::io::{BufReader, BufWriter, Read, Write};
+use std::path::PathBuf;
 
 pub trait DataAccess {
     fn read_data_file(&mut self) -> Result<String, String>;
@@ -22,17 +23,12 @@ impl FileDataAccess {
 
 impl DataAccess for FileDataAccess {
     fn read_data_file(&mut self) -> Result<String, String> {
-        // TODO come up with a better solution
-        let base_path = "/home/dhruv/Programming/rust/rust-projects/led-glyph/glyph-cli/data";
-        let file_path = format!(
-            "{}/bitmap-{}X{}.json",
-            base_path, self.grid_size, self.grid_size
-        );
-        println!("Reading datfile: {}", &file_path);
+        let file_path =
+            Self::data_dir().join(format!("bitmap-{}X{}.json", self.grid_size, self.grid_size));
         let file = OpenOptions::new()
             .read(true)
             .open(file_path)
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("Error reading file with error {}", e.to_string()))?;
         let mut reader = BufReader::new(file);
         let mut input = String::new();
         reader
@@ -42,7 +38,6 @@ impl DataAccess for FileDataAccess {
     }
 
     fn write_data_file(&mut self, data: Vec<u8>) -> Result<(), String> {
-        println!("Writing to datafile: {}", &self.out_data_file);
         let file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -51,6 +46,12 @@ impl DataAccess for FileDataAccess {
             .map_err(|e| e.to_string())?;
         let mut writer = BufWriter::new(file);
         writer.write_all(&data).map_err(|e| e.to_string())
+    }
+}
+
+impl FileDataAccess {
+    fn data_dir() -> PathBuf {
+        dirs::home_dir().unwrap().join(".local/share/glyph")
     }
 }
 
