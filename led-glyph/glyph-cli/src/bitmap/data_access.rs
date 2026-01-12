@@ -96,12 +96,4 @@ impl TestDataAccess {
             write_should_fail: false,
         }
     }
-
-    pub fn write_fail(input: &str) -> Self {
-        Self {
-            read_result: Ok(input.to_string()),
-            written_data: Vec::new(),
-            write_should_fail: true,
-        }
-    }
 }
