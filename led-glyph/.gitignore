@@ -1,0 +1,57 @@
+# ======================
+# Rust / Cargo
+# ======================
+target/
+**/target/
+
+# Cargo.lock
+# - Keep for binaries
+# - Optional for libraries
+# Uncomment if you publish a library-only repo
+# Cargo.lock
+
+# ======================
+# Rust Analyzer / IDEs
+# ======================
+.rust-analyzer/
+.idea/
+*.iml
+
+# ======================
+# OS files
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# Editor swap / backup
+# ======================
+*.swp
+*.swo
+*~
+*.bak
+
+# ======================
+# Logs / temp files
+# ======================
+*.log
+
+# ======================
+# Coverage / profiling
+# ======================
+coverage/
+*.profraw
+*.profdata
+
+# ======================
+# Generated artifacts
+# ======================
+out/
+dist/
+build/
+
+# ======================
+# Env files
+# ======================
+.env
+.env.*
