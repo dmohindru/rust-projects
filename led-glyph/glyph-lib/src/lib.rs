@@ -58,24 +58,11 @@ fn build_glyph_next_animation_frames(glyphs: &Vec<Glyph>) -> Vec<u8> {
 }
 
 fn build_glyph_scroll_animation_frame(glyphs: &Vec<Glyph>) -> Vec<u8> {
-    ///
-    /// Logic to implement here
-    /// 1. We will have Vector rows of bool (0s and 1s), representing single continuous row of scrolling animation
-    /// 2. Number of row will depend on size of glyph e.g for 5X5 it will be five rows
-    /// 3. Loop through each glyph and set the content of vector rows as per the bitmap of each glyph row data
-    /// 4. At the end of each glyph introduce a blank pixels in each row as a separator between two characters.
-    /// 5. If the next glyph is a space then introduce two blank pixels in each row to represent a space between two characters. (To be implemented later)
-    /// 6. At the very end of the animation introduce a one full blank glyph as per the size of glyph e.g. 5X5 introduce 5 blank pixels in each row.
-    /// 7. Now the whole reel is ready now capture each frame. How to do it
-    ///  7.1 Think of it as a picture frame of the size of glyph e.g. 5X5
-    ///  7.2 Start at the very start of reel from location 0 (i) to n-1(j). Where n is the size of glyph e.g. 5 or 8 etc and i an j are indexes moving toward left
-    ///  7.3 Generate the glyph data by capturing content of reel from i to j for each rows
-    ///  7.4 Let to total length of reel be L. Move the capture from to left till j < L
-    /// 8. Build the vector to generated frames and return
-    ///
     let mut animation_reel: Vec<Vec<bool>> = vec![];
     let first_glyph = glyphs.get(0).unwrap();
-    for _ in 0..first_glyph.height() {
+    let num_rows = first_glyph.height();
+    let width = first_glyph.width() as usize;
+    for _ in 0..num_rows {
         animation_reel.push(vec![]);
     }
 
@@ -93,7 +80,27 @@ fn build_glyph_scroll_animation_frame(glyphs: &Vec<Glyph>) -> Vec<u8> {
         .iter_mut()
         .for_each(|v| v.extend((0..remaining_bit).map(|_| false)));
 
-    todo!()
+    let max = animation_reel[0].len().saturating_sub(width - 1);
+    let mut frames: Vec<u8> = vec![];
+    for i in 0..max {
+        for row in animation_reel.iter() {
+            let slice = row.get(i..i + width).unwrap();
+            frames.push(get_bitmap(&slice));
+        }
+    }
+
+    frames
+}
+
+fn get_bitmap(bool_slice: &[bool]) -> u8 {
+    let mut result: u8 = 0;
+    for bit in bool_slice {
+        let bit: u8 = if *bit == true { 1 } else { 0 };
+        result = result << 1;
+        result = result | bit;
+    }
+
+    result
 }
 
 #[cfg(test)]
@@ -135,7 +142,6 @@ mod tests {
         let glyph2 = Glyph::new(3, vec![0x01, 0x02, 0x04]).unwrap();
         let glyphs = vec![glyph1, glyph2];
         let frame_data = glyph_animation_frames(glyphs, AnimationMode::Scroll);
-        assert_eq!(9, frame_data.len());
         assert_eq!(
             vec![
                 0x04, 0x02, 0x01, // Frame 1
