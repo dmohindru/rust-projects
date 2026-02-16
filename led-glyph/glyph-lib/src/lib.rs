@@ -57,7 +57,7 @@ fn build_glyph_next_animation_frames(glyphs: &Vec<Glyph>) -> Vec<u8> {
     glyphs.iter().flat_map(|g| g.bitmap.clone()).collect()
 }
 
-fn build_glyph_scroll_animation_frame(glyph: &Vec<Glyph>) -> Vec<u8> {
+fn build_glyph_scroll_animation_frame(glyphs: &Vec<Glyph>) -> Vec<u8> {
     ///
     /// Logic to implement here
     /// 1. We will have Vector rows of bool (0s and 1s), representing single continuous row of scrolling animation
@@ -73,6 +73,26 @@ fn build_glyph_scroll_animation_frame(glyph: &Vec<Glyph>) -> Vec<u8> {
     ///  7.4 Let to total length of reel be L. Move the capture from to left till j < L
     /// 8. Build the vector to generated frames and return
     ///
+    let mut animation_reel: Vec<Vec<bool>> = vec![];
+    let first_glyph = glyphs.get(0).unwrap();
+    for _ in 0..first_glyph.height() {
+        animation_reel.push(vec![]);
+    }
+
+    for glyph in glyphs.iter() {
+        for (index, value) in glyph.bitmap().iter().enumerate() {
+            let reel_row = animation_reel.get_mut(index).unwrap();
+            reel_row.extend((0..glyph.width()).rev().map(|i| (value & (1 << i)) != 0));
+            reel_row.extend((0..2).map(|_| false));
+        }
+    }
+
+    // Insert remaining frame bits
+    let remaining_bit = first_glyph.width() - 2;
+    animation_reel
+        .iter_mut()
+        .for_each(|v| v.extend((0..remaining_bit).map(|_| false)));
+
     todo!()
 }
 
@@ -108,4 +128,85 @@ mod tests {
             vec!(0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09)
         );
     }
+
+    #[test]
+    fn should_return_frame_data_for_scroll_animation_mode() {
+        let glyph1 = Glyph::new(3, vec![0x04, 0x02, 0x01]).unwrap();
+        let glyph2 = Glyph::new(3, vec![0x01, 0x02, 0x04]).unwrap();
+        let glyphs = vec![glyph1, glyph2];
+        let frame_data = glyph_animation_frames(glyphs, AnimationMode::Scroll);
+        assert_eq!(9, frame_data.len());
+        assert_eq!(
+            vec![
+                0x04, 0x02, 0x01, // Frame 1
+                0x00, 0x04, 0x02, // Frame 2
+                0x00, 0x00, 0x04, // Frame 3
+                0x00, 0x00, 0x01, // Frame 4
+                0x00, 0x01, 0x02, // Frame 5
+                0x01, 0x02, 0x04, // Frame 6
+                0x02, 0x04, 0x00, // Frame 7
+                0x04, 0x00, 0x00, // Frame 8
+                0x00, 0x00, 0x00, // Frame 9
+            ],
+            frame_data
+        );
+    }
+    /*
+    A = 100
+        010
+        001
+    B = 001
+        010
+        100
+    animation
+    100 00 001 000
+    010 00 010 000
+    001 00 100 000
+
+    Frames1
+    100
+    010
+    001
+
+    Frame2
+    000
+    100
+    010
+
+    Frame3
+    000
+    000
+    100
+
+    Frame 4
+    000
+    000
+    001
+
+    Frame 5
+    000
+    001
+    010
+
+    Frame 6
+    001
+    010
+    100
+
+    Frame 7
+    010
+    100
+    000
+
+    Frame 8
+    100
+    000
+    000
+
+    Frame 9
+    000
+    000
+    000
+
+     */
 }
