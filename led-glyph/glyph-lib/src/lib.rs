@@ -58,6 +58,7 @@ fn build_glyph_next_animation_frames(glyphs: &Vec<Glyph>) -> Vec<u8> {
 }
 
 fn build_glyph_scroll_animation_frame(glyphs: &Vec<Glyph>) -> Vec<u8> {
+    let char_spacing = 1;
     let mut animation_reel: Vec<Vec<bool>> = vec![];
     let first_glyph = glyphs.get(0).unwrap();
     let num_rows = first_glyph.height();
@@ -70,12 +71,12 @@ fn build_glyph_scroll_animation_frame(glyphs: &Vec<Glyph>) -> Vec<u8> {
         for (index, value) in glyph.bitmap().iter().enumerate() {
             let reel_row = animation_reel.get_mut(index).unwrap();
             reel_row.extend((0..glyph.width()).rev().map(|i| (value & (1 << i)) != 0));
-            reel_row.extend((0..2).map(|_| false));
+            reel_row.extend((0..char_spacing).map(|_| false));
         }
     }
 
     // Insert remaining frame bits
-    let remaining_bit = first_glyph.width() - 2;
+    let remaining_bit = first_glyph.width() - char_spacing;
     animation_reel
         .iter_mut()
         .for_each(|v| v.extend((0..remaining_bit).map(|_| false)));
@@ -146,13 +147,12 @@ mod tests {
             vec![
                 0x04, 0x02, 0x01, // Frame 1
                 0x00, 0x04, 0x02, // Frame 2
-                0x00, 0x00, 0x04, // Frame 3
-                0x00, 0x00, 0x01, // Frame 4
-                0x00, 0x01, 0x02, // Frame 5
-                0x01, 0x02, 0x04, // Frame 6
-                0x02, 0x04, 0x00, // Frame 7
-                0x04, 0x00, 0x00, // Frame 8
-                0x00, 0x00, 0x00, // Frame 9
+                0x00, 0x00, 0x05, // Frame 3
+                0x00, 0x01, 0x02, // Frame 4
+                0x01, 0x02, 0x04, // Frame 5
+                0x02, 0x04, 0x00, // Frame 6
+                0x04, 0x00, 0x00, // Frame 7
+                0x00, 0x00, 0x00, // Frame 8
             ],
             frame_data
         );
@@ -165,9 +165,9 @@ mod tests {
         010
         100
     animation
-    100 00 001 000
-    010 00 010 000
-    001 00 100 000
+    100 0 001 000
+    010 0 010 000
+    001 0 100 000
 
     Frames1
     100
@@ -182,34 +182,29 @@ mod tests {
     Frame3
     000
     000
-    100
+    101
 
     Frame 4
     000
-    000
     001
+    010
 
     Frame 5
-    000
     001
     010
+    100
 
     Frame 6
-    001
     010
     100
+    000
 
     Frame 7
-    010
     100
+    000
     000
 
     Frame 8
-    100
-    000
-    000
-
-    Frame 9
     000
     000
     000
